@@ -1,7 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import PaymentButton from '../../components/PaymentButton';
 import { expenseAPI, groupAPI } from '../../services/api';
+
+import { useRouter } from 'expo-router';
+const router = useRouter();
 
 export default function BalancesScreen() {
   const [groups, setGroups] = useState<any[]>([]);
@@ -9,6 +13,7 @@ export default function BalancesScreen() {
   const [balances, setBalances] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pendingSettlements, setPendingSettlements] = useState<any[]>([]);
 
   useEffect(() => {
     loadGroups();
@@ -62,6 +67,48 @@ export default function BalancesScreen() {
     return members.find(m => m.user_id === userId);
   };
 
+  const handleMarkPaid = async (toUserId: number, amount: number) => {
+    Alert.alert(
+      'Mark as Paid',
+      `Confirm you paid $${amount.toFixed(2)}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, I Paid',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('authToken');
+              const userStr = await AsyncStorage.getItem('user');
+              const currentUser = JSON.parse(userStr || '{}');
+
+              const response = await fetch('http://192.168.29.52:3000/api/expenses/settlement', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  groupId: selectedGroup.group_id,
+                  fromUser: currentUser.userId,
+                  toUser: toUserId,
+                  amount,
+                }),
+              });
+
+              if (response.ok) {
+                Alert.alert('Success', 'Payment marked! Waiting for confirmation.');
+                loadBalances();
+              }
+            } catch (error) {
+              console.error('Mark paid error:', error);
+              Alert.alert('Error', 'Failed to mark payment');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const youOwe = balances.filter(b => parseFloat(b.balance) < 0);
   const owesYou = balances.filter(b => parseFloat(b.balance) > 0);
 
@@ -75,9 +122,13 @@ export default function BalancesScreen() {
         <RefreshControl refreshing={loading} onRefresh={loadBalances} />
       }
     >
-      <Text style={styles.title}>Balances</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Balances</Text>
+        <TouchableOpacity onPress={() => router.push('/settlements')}>
+          <Text style={styles.historyLink}>Payments →</Text>
+        </TouchableOpacity>
+      </View>
 
-      {/* Group Selector */}
       {groups.length > 0 && (
         <View style={styles.groupSelector}>
           <Text style={styles.label}>Select Group:</Text>
@@ -109,7 +160,6 @@ export default function BalancesScreen() {
         </View>
       ) : (
         <>
-          {/* Summary Cards */}
           <View style={styles.summaryContainer}>
             <View style={[styles.summaryCard, styles.oweCard]}>
               <Text style={styles.summaryLabel}>You owe</Text>
@@ -121,7 +171,6 @@ export default function BalancesScreen() {
             </View>
           </View>
 
-          {/* You Owe Section */}
           {youOwe.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>You Owe</Text>
@@ -139,7 +188,7 @@ export default function BalancesScreen() {
                       </Text>
                     </View>
                     
-                    <View style={styles.paymentButtons}>
+                    <View style={styles.paymentSection}>
                       {member?.venmo_handle && (
                         <PaymentButton
                           type="venmo"
@@ -156,19 +205,13 @@ export default function BalancesScreen() {
                           note={`Payment for ${selectedGroup?.name}`}
                         />
                       )}
-                      {member?.paypal_handle && (
-                        <PaymentButton
-                          type="paypal"
-                          handle={member.paypal_handle}
-                          amount={amount}
-                          note={`Payment for ${selectedGroup?.name}`}
-                        />
-                      )}
-                      {!member?.venmo_handle && !member?.zelle_handle && !member?.paypal_handle && (
-                        <Text style={styles.noPaymentInfo}>
-                          No payment info available
-                        </Text>
-                      )}
+                      
+                      <TouchableOpacity 
+                        style={styles.markPaidButton}
+                        onPress={() => handleMarkPaid(balance.user_id, amount)}
+                      >
+                        <Text style={styles.markPaidText}>✓ Mark as Paid</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 );
@@ -176,7 +219,6 @@ export default function BalancesScreen() {
             </>
           )}
 
-          {/* Owes You Section */}
           {owesYou.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Owes You</Text>
@@ -202,6 +244,8 @@ export default function BalancesScreen() {
               <Text style={styles.emptyText}>All settled up! 🎉</Text>
             </View>
           )}
+
+          
         </>
       )}
     </ScrollView>
@@ -347,5 +391,31 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: '#6b7280',
+  },
+  paymentSection: {
+  gap: 8,
+  minWidth: 180,
+  },
+  markPaidButton: {
+    backgroundColor: '#10b981',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  markPaidText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  historyLink: {
+    color: '#3b82f6',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

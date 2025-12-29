@@ -38,15 +38,13 @@ export const getGroupExpenses = async (req: AuthRequest, res: Response) => {
 // Create new expense
 export const createExpense = async (req: AuthRequest, res: Response) => {
   const userId = req.userId;
-  const { groupId, amount, description, category, expenseDate, splitWith } = req.body;
+  const { groupId, amount, description, category, expenseDate, splitWith, splitType, customSplits } = req.body;
 
   try {
-    // Validate input
     if (!groupId || !amount || !description) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Check if user is member of group
     const memberCheck = await pool.query(
       'SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2',
       [groupId, userId]
@@ -61,7 +59,6 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
     try {
       await client.query('BEGIN');
 
-      // Create expense
       const expenseResult = await client.query(
         `INSERT INTO expenses (group_id, paid_by, amount, description, category, expense_date)
          VALUES ($1, $2, $3, $4, $5, $6)
@@ -71,11 +68,11 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
 
       const newExpense = expenseResult.rows[0];
 
-      // Create splits
-      // If splitWith is provided, split among those users, otherwise split equally among all group members
+      // Handle different split types
       let membersToSplit = splitWith;
 
       if (!membersToSplit || membersToSplit.length === 0) {
+        // Default: equal split among all members
         const membersResult = await client.query(
           'SELECT user_id FROM group_members WHERE group_id = $1',
           [groupId]
@@ -83,14 +80,37 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
         membersToSplit = membersResult.rows.map(row => row.user_id);
       }
 
-      const amountPerPerson = parseFloat(amount) / membersToSplit.length;
+      // Create splits based on type
+      if (splitType === 'custom' && customSplits) {
+        // Custom amounts per person
+        for (const split of customSplits) {
+          await client.query(
+            `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
+             VALUES ($1, $2, $3, $4)`,
+            [newExpense.expense_id, split.userId, split.amount, split.userId === userId]
+          );
+        }
+      } else if (splitType === 'percentage' && customSplits) {
+        // Percentage splits
+        for (const split of customSplits) {
+          const splitAmount = (parseFloat(amount) * split.percentage) / 100;
+          await client.query(
+            `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
+             VALUES ($1, $2, $3, $4)`,
+            [newExpense.expense_id, split.userId, splitAmount, split.userId === userId]
+          );
+        }
+      } else {
+        // Equal split (default)
+        const amountPerPerson = parseFloat(amount) / membersToSplit.length;
 
-      for (const memberId of membersToSplit) {
-        await client.query(
-          `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
-           VALUES ($1, $2, $3, $4)`,
-          [newExpense.expense_id, memberId, amountPerPerson, memberId === userId]
-        );
+        for (const memberId of membersToSplit) {
+          await client.query(
+            `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
+             VALUES ($1, $2, $3, $4)`,
+            [newExpense.expense_id, memberId, amountPerPerson, memberId === userId]
+          );
+        }
       }
 
       await client.query('COMMIT');
@@ -278,6 +298,123 @@ export const deleteExpense = async (req: AuthRequest, res: Response) => {
     res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     console.error('Delete expense error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Mark settlement as paid
+export const markSettlementPaid = async (req: AuthRequest, res: Response) => {
+  const userId = req.userId;
+  const { fromUser, toUser, groupId, amount } = req.body;
+
+  try {
+    if (userId !== fromUser) {
+      return res.status(403).json({ error: 'Can only mark your own payments' });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO settlements (group_id, from_user, to_user, amount, status)
+       VALUES ($1, $2, $3, $4, 'pending')
+       RETURNING *`,
+      [groupId, fromUser, toUser, amount]
+    );
+
+    res.status(201).json({
+      message: 'Payment marked as pending confirmation',
+      settlement: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Mark settlement error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Confirm settlement (by recipient)
+export const confirmSettlement = async (req: AuthRequest, res: Response) => {
+  const userId = req.userId;
+  const { settlementId } = req.params;
+
+  try {
+    const check = await pool.query(
+      'SELECT * FROM settlements WHERE settlement_id = $1 AND to_user = $2',
+      [settlementId, userId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await pool.query(
+      `UPDATE settlements 
+       SET status = 'confirmed', settled_at = CURRENT_TIMESTAMP
+       WHERE settlement_id = $1`,
+      [settlementId]
+    );
+
+    res.json({ message: 'Payment confirmed' });
+  } catch (error) {
+    console.error('Confirm settlement error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Get settlement history for a group
+export const getGroupSettlements = async (req: AuthRequest, res: Response) => {
+  const { groupId } = req.params;
+  const userId = req.userId;
+
+  try {
+    const memberCheck = await pool.query(
+      'SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2',
+      [groupId, userId]
+    );
+
+    if (memberCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'Not a member of this group' });
+    }
+
+    const result = await pool.query(
+      `SELECT s.*, 
+              u1.name as from_name,
+              u2.name as to_name
+       FROM settlements s
+       JOIN users u1 ON s.from_user = u1.user_id
+       JOIN users u2 ON s.to_user = u2.user_id
+       WHERE s.group_id = $1
+       ORDER BY s.settled_at DESC`,
+      [groupId]
+    );
+
+    res.json({ settlements: result.rows });
+  } catch (error) {
+    console.error('Get settlements error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Get pending settlements for a user
+export const getPendingSettlements = async (req: AuthRequest, res: Response) => {
+  const userId = req.userId;
+
+  try {
+    const result = await pool.query(
+      `SELECT s.*, 
+              u1.name as from_name,
+              u2.name as to_name,
+              g.name as group_name
+       FROM settlements s
+       JOIN users u1 ON s.from_user = u1.user_id
+       JOIN users u2 ON s.to_user = u2.user_id
+       JOIN groups g ON s.group_id = g.group_id
+       WHERE (s.from_user = $1 OR s.to_user = $1)
+       AND s.status = 'pending'
+       ORDER BY s.settled_at DESC`,
+      [userId]
+    );
+
+    res.json({ settlements: result.rows });
+  } catch (error) {
+    console.error('Get pending settlements error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 };

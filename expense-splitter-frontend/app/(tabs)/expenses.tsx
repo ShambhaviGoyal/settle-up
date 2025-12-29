@@ -4,7 +4,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { useEffect, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ReceiptScanner from '../../components/ReceiptScanner';
-import { expenseAPI, groupAPI } from '../../services/api';
+import { groupAPI } from '../../services/api';
 const API_URL = 'http://192.168.29.52:3000/api';
 
 
@@ -27,6 +27,10 @@ export default function ExpensesScreen() {
   const [showCamera, setShowCamera] = useState(false);
   const [receiptUri, setReceiptUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [splitType, setSplitType] = useState<'equal' | 'custom'>('equal');
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [customAmounts, setCustomAmounts] = useState<{ [key: number]: string }>({});
+  const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
     loadGroups();
@@ -44,6 +48,28 @@ export default function ExpensesScreen() {
     }
   };
 
+  const loadMembers = async () => {
+    if (!selectedGroup) return;
+    
+    try {
+      const groupDetails = await groupAPI.getDetails(selectedGroup.group_id);
+      setMembers(groupDetails.members);
+      setSelectedMembers(groupDetails.members.map((m: any) => m.user_id));
+    } catch (error) {
+      console.error('Error loading members:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadGroups();
+  }, []);
+
+  useEffect(() => {
+    if (selectedGroup) {
+      loadMembers();
+    }
+  }, [selectedGroup]);
+
 const handlePhotoTaken = async (uri: string) => {
   setReceiptUri(uri);
   setShowCamera(false);
@@ -51,19 +77,16 @@ const handlePhotoTaken = async (uri: string) => {
   Alert.alert('Processing Receipt', 'Extracting data from receipt...');
   
   try {
-    // Compress image first
     const manipResult = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1024 } }], // Resize to max 1024px width
+      [{ resize: { width: 1024 } }],
       { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
     );
     
-    // Convert to base64
     const base64 = await FileSystem.readAsStringAsync(manipResult.uri, {
       encoding: FileSystem.EncodingType.Base64,
     });
     
-    // Send to backend for OCR
     const response = await fetch(`${API_URL}/ocr/receipt`, {
       method: 'POST',
       headers: {
@@ -94,41 +117,91 @@ const handlePhotoTaken = async (uri: string) => {
   }
 };
 
-  const handleAddExpense = async () => {
-    if (!description || !amount || !selectedGroup) {
-      Alert.alert('Error', 'Please fill in all fields and select a group');
+  const toggleMember = (userId: number) => {
+    if (selectedMembers.includes(userId)) {
+      setSelectedMembers(selectedMembers.filter(id => id !== userId));
+    } else {
+      setSelectedMembers([...selectedMembers, userId]);
+    }
+  };
+
+const handleAddExpense = async () => {
+  if (!description || !amount || !selectedGroup) {
+    Alert.alert('Error', 'Please fill in all fields and select a group');
+    return;
+  }
+
+  const amountNum = parseFloat(amount);
+  if (isNaN(amountNum) || amountNum <= 0) {
+    Alert.alert('Error', 'Please enter a valid amount');
+    return;
+  }
+
+  if (selectedMembers.length === 0) {
+    Alert.alert('Error', 'Select at least one person to split with');
+    return;
+  }
+
+  if (splitType === 'custom') {
+    const total = selectedMembers.reduce((sum, id) => {
+      return sum + (parseFloat(customAmounts[id] || '0'));
+    }, 0);
+    
+    if (Math.abs(total - amountNum) > 0.01) {
+      Alert.alert('Error', `Custom amounts must total $${amountNum.toFixed(2)}`);
       return;
     }
+  }
 
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
-      return;
+  setLoading(true);
+  try {
+    let customSplits = null;
+    
+    if (splitType === 'custom') {
+      customSplits = selectedMembers.map(id => ({
+        userId: id,
+        amount: parseFloat(customAmounts[id] || '0'),
+      }));
     }
 
-    setLoading(true);
-    try {
-      await expenseAPI.create(
-        selectedGroup.group_id,
-        amountNum,
+    const token = await AsyncStorage.getItem('authToken');
+    const response = await fetch(`${API_URL}/expenses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        groupId: selectedGroup.group_id,
+        amount: amountNum,
         description,
-        selectedCategory
-      );
+        category: selectedCategory,
+        expenseDate: new Date().toISOString().split('T')[0],
+        splitWith: selectedMembers,
+        splitType,
+        customSplits,
+      }),
+    });
 
+    if (response.ok) {
       Alert.alert('Success', 'Expense added successfully!');
-      
-      // Clear form
       setDescription('');
       setAmount('');
       setSelectedCategory('other');
       setReceiptUri(null);
-    } catch (error: any) {
-      console.error('Error adding expense:', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to add expense');
-    } finally {
-      setLoading(false);
+      setSplitType('equal');
+      setCustomAmounts({});
+      if (selectedGroup) loadMembers();
+    } else {
+      Alert.alert('Error', 'Failed to add expense');
     }
-  };
+  } catch (error: any) {
+    console.error('Error adding expense:', error);
+    Alert.alert('Error', 'Failed to add expense');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
@@ -201,6 +274,54 @@ const handlePhotoTaken = async (uri: string) => {
               ))}
             </View>
           )}
+
+          {/* ===== ADDED CODE (exact as provided) ===== */}
+          <Text style={styles.label}>Split With</Text>
+          <View style={styles.splitTypeSelector}>
+            <TouchableOpacity
+              style={[styles.splitTypeButton, splitType === 'equal' && styles.splitTypeButtonSelected]}
+              onPress={() => setSplitType('equal')}
+            >
+              <Text style={[styles.splitTypeText, splitType === 'equal' && styles.splitTypeTextSelected]}>
+                Equal Split
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.splitTypeButton, splitType === 'custom' && styles.splitTypeButtonSelected]}
+              onPress={() => setSplitType('custom')}
+            >
+              <Text style={[styles.splitTypeText, splitType === 'custom' && styles.splitTypeTextSelected]}>
+                Custom Amounts
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.membersList}>
+            {members.map((member) => (
+              <View key={member.user_id} style={styles.memberRow}>
+                <TouchableOpacity
+                  style={styles.memberCheckbox}
+                  onPress={() => toggleMember(member.user_id)}
+                >
+                  <View style={[styles.checkbox, selectedMembers.includes(member.user_id) && styles.checkboxChecked]}>
+                    {selectedMembers.includes(member.user_id) && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.memberName}>{member.name}</Text>
+                </TouchableOpacity>
+                
+                {splitType === 'custom' && selectedMembers.includes(member.user_id) && (
+                  <TextInput
+                    style={styles.amountInput}
+                    placeholder="0.00"
+                    value={customAmounts[member.user_id] || ''}
+                    onChangeText={(text) => setCustomAmounts({ ...customAmounts, [member.user_id]: text })}
+                    keyboardType="decimal-pad"
+                  />
+                )}
+              </View>
+            ))}
+          </View>
+          {/* ===== END ADDED CODE ===== */}
 
           <TouchableOpacity 
             style={styles.scanButton}
@@ -347,5 +468,76 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  splitTypeSelector: {
+  flexDirection: 'row',
+  gap: 8,
+  marginBottom: 16,
+  },
+  splitTypeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  splitTypeButtonSelected: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  splitTypeText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  splitTypeTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  membersList: {
+    marginBottom: 20,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  memberCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  memberName: {
+    fontSize: 15,
+    color: '#374151',
+  },
+  amountInput: {
+    width: 80,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    padding: 8,
+    textAlign: 'right',
   },
 });

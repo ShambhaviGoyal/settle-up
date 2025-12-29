@@ -26,16 +26,15 @@ export const getSpendingInsights = async (req: AuthRequest, res: Response) => {
          WHERE es.user_id = $1
          ORDER BY e.expense_date DESC LIMIT 50`;
     
-    const expenses = groupId 
-    ? await pool.query(expensesQuery, [groupId])
-    : await pool.query(expensesQuery, [userId]);
+    const params: any[] = groupId ? [groupId] : [userId];
+    const expenses = await pool.query(expensesQuery, params);
 
     if (expenses.rows.length === 0) {
       return res.json({ insights: 'Not enough data yet. Add more expenses to get insights!' });
     }
 
     // Prepare data for AI
-    const expenseData = expenses.rows.map(e => ({
+    const expenseData = expenses.rows.map((e: any) => ({
       description: e.description,
       amount: parseFloat(e.amount),
       category: e.category,

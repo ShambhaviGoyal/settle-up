@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import AddMemberModal from '../components/AddMemberModal';
 import ExpenseCard from '../components/ExpenseCard';
+import RecurringExpenseModal from '../components/RecurringExpenseModal';
 import { expenseAPI, groupAPI } from '../services/api';
 
 export default function GroupDetailsScreen() {
@@ -15,20 +16,22 @@ export default function GroupDetailsScreen() {
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   
-  // Edit modal state
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [editDescription, setEditDescription] = useState('');
   const [editAmount, setEditAmount] = useState('');
 
-  // Add member modal state
   const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
+
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [recurringExpenses, setRecurringExpenses] = useState<any[]>([]);
 
   useEffect(() => {
     loadCurrentUser();
     loadGroupData();
+    loadRecurringExpenses();
   }, []);
-
+  
   const loadCurrentUser = async () => {
     try {
       const userStr = await AsyncStorage.getItem('user');
@@ -109,6 +112,18 @@ export default function GroupDetailsScreen() {
     );
   };
 
+  const loadRecurringExpenses = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const response = await fetch(`http://192.168.29.52:3000/api/recurring/group/${groupId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setRecurringExpenses(data.recurring || []);
+    } catch (error) {
+      console.error('Error loading recurring:', error);
+    }
+  };
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -194,6 +209,39 @@ export default function GroupDetailsScreen() {
           ))
           )}
         </View>
+        {/* Recurring Expenses */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recurring Expenses</Text>
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => setShowRecurringModal(true)}
+            >
+              <Text style={styles.addButtonText}>+ Add</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {recurringExpenses.length === 0 ? (
+            <Text style={styles.emptyText}>No recurring expenses</Text>
+          ) : (
+            recurringExpenses.map(recurring => (
+              <View key={recurring.recurring_id} style={styles.recurringCard}>
+                <View>
+                  <Text style={styles.recurringDescription}>{recurring.description}</Text>
+                  <Text style={styles.recurringDetails}>
+                    ${parseFloat(recurring.amount).toFixed(2)} • Day {recurring.day_of_month} of month
+                  </Text>
+                </View>
+                <View style={styles.recurringActions}>
+                  <Text style={[styles.statusBadge, recurring.is_active && styles.statusActive]}>
+                    {recurring.is_active ? 'Active' : 'Paused'}
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+
       </ScrollView>
 
       {/* Edit Modal */}
@@ -239,6 +287,13 @@ export default function GroupDetailsScreen() {
         groupId={Number(groupId)}
         onClose={() => setAddMemberModalVisible(false)}
         onMemberAdded={loadGroupData}
+      />
+
+      <RecurringExpenseModal
+        visible={showRecurringModal}
+        groupId={Number(groupId)}
+        onClose={() => setShowRecurringModal(false)}
+        onCreated={loadRecurringExpenses}
       />
     </View>
   );
@@ -402,5 +457,57 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     marginBottom: 20,
+  },
+  addButton: {
+  backgroundColor: '#3b82f6',
+  paddingHorizontal: 12,
+  paddingVertical: 6,
+  borderRadius: 6,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recurringCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  recurringDescription: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  recurringDetails: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  recurringActions: {
+    alignItems: 'flex-end',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    fontSize: 12,
+    fontWeight: '600',
+    backgroundColor: '#e5e7eb',
+    color: '#6b7280',
+  },
+  statusActive: {
+    backgroundColor: '#d1fae5',
+    color: '#065f46',
+  },
+  emptyTextItalic: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
   },
 });
