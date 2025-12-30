@@ -54,11 +54,26 @@ export default function HomeScreen() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-  style={styles.insightsButton}
-  onPress={() => router.push('/insights')}
->
-  <Text style={styles.insightsButtonText}>💡 AI Insights</Text>
-</TouchableOpacity>
+          style={styles.insightsButton}
+          onPress={() => router.push('/insights')}
+        >
+          <Text style={styles.insightsButtonText}>💡 AI Insights</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={() => router.push('/search-expenses')}
+        >
+          <Text style={styles.searchButtonText}>🔍 Search Expenses</Text>
+        </TouchableOpacity>
+
+        {/* ✅ ADDED BUDGET BUTTON */}
+        <TouchableOpacity 
+          style={styles.budgetButton}
+          onPress={() => router.push('/budgets')}
+        >
+          <Text style={styles.budgetButtonText}>💰 Budgets</Text>
+        </TouchableOpacity>
 
         <View style={styles.groupList}>
           {groups.length === 0 ? (
@@ -148,17 +163,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   insightsButton: {
-  backgroundColor: '#eff6ff',
-  padding: 12,
-  borderRadius: 8,
-  alignItems: 'center',
-  marginBottom: 20,
-  borderWidth: 1,
-  borderColor: '#bfdbfe',
-},
-insightsButtonText: {
-  color: '#1e40af',
-  fontSize: 15,
-  fontWeight: '600',
-},
+    backgroundColor: '#eff6ff',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  insightsButtonText: {
+    color: '#1e40af',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  searchButton: {
+    backgroundColor: '#f3f4f6',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  searchButtonText: {
+    color: '#374151',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  /* ✅ ADDED STYLES */
+  budgetButton: {
+    backgroundColor: '#fef3c7',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  budgetButtonText: {
+    color: '#92400e',
+    fontSize: 15,
+    fontWeight: '600',
+  },
 });

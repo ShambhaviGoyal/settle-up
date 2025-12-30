@@ -9,6 +9,7 @@ import insightsRoutes from './routes/insightsRoutes';
 import recurringRoutes from './routes/recurringRoutes';
 import { processRecurring } from './controllers/recurringController';
 import cron from 'node-cron';
+import budgetRoutes from './routes/budgetRoutes';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api/expenses', expenseRoutes); // Add this
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/recurring', recurringRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 // Test route
 app.get('/', (req: Request, res: Response) => {

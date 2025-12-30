@@ -1,3 +1,5 @@
+import { searchExpenses } from '../controllers/expenseController';
+
 import express from 'express';
 import {
   getGroupExpenses,
@@ -27,5 +29,6 @@ router.post('/settlement', markSettlementPaid);
 router.patch('/settlement/:settlementId/confirm', confirmSettlement);
 router.get('/settlements/:groupId', getGroupSettlements);
 router.get('/settlements/pending', getPendingSettlements);
+router.get('/search', searchExpenses);
 
 export default router;

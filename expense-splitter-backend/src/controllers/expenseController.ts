@@ -418,3 +418,84 @@ export const getPendingSettlements = async (req: AuthRequest, res: Response) => 
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// Search/filter expenses
+export const searchExpenses = async (req: AuthRequest, res: Response) => {
+  const userId = req.userId;
+  const { groupId, search, category, startDate, endDate, minAmount, maxAmount } = req.query;
+
+  try {
+    let query = `
+      SELECT e.*, u.name as paid_by_name
+      FROM expenses e
+      JOIN users u ON e.paid_by = u.user_id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+    let paramCount = 1;
+
+    // Filter by group
+    if (groupId) {
+      query += ` AND e.group_id = $${paramCount}`;
+      params.push(groupId);
+      paramCount++;
+    } else {
+      // User's expenses across all groups
+      query += ` AND e.expense_id IN (
+        SELECT expense_id FROM expense_splits WHERE user_id = $${paramCount}
+      )`;
+      params.push(userId);
+      paramCount++;
+    }
+
+    // Search by description
+    if (search) {
+      query += ` AND e.description ILIKE $${paramCount}`;
+      params.push(`%${search}%`);
+      paramCount++;
+    }
+
+    // Filter by category
+    if (category) {
+      query += ` AND e.category = $${paramCount}`;
+      params.push(category);
+      paramCount++;
+    }
+
+    // Date range
+    if (startDate) {
+      query += ` AND e.expense_date >= $${paramCount}`;
+      params.push(startDate);
+      paramCount++;
+    }
+    if (endDate) {
+      query += ` AND e.expense_date <= $${paramCount}`;
+      params.push(endDate);
+      paramCount++;
+    }
+
+    // Amount range
+    if (minAmount) {
+      query += ` AND e.amount >= $${paramCount}`;
+      params.push(minAmount);
+      paramCount++;
+    }
+    if (maxAmount) {
+      query += ` AND e.amount <= $${paramCount}`;
+      params.push(maxAmount);
+      paramCount++;
+    }
+
+    query += ` ORDER BY e.expense_date DESC, e.created_at DESC LIMIT 100`;
+
+    const result = await pool.query(query, params);
+
+    res.json({ 
+      expenses: result.rows,
+      count: result.rows.length,
+    });
+  } catch (error) {
+    console.error('Search expenses error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
