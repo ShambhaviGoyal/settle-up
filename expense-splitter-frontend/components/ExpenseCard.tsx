@@ -50,13 +50,15 @@ export default function ExpenseCard({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.description}>{description}</Text>
-          <View style={[styles.categoryBadge, { backgroundColor: CATEGORY_COLORS[category] + '20' }]}>
+          <View style={[styles.categoryBadge, { backgroundColor: CATEGORY_COLORS[category] + '26' }]}>
             <Text style={[styles.categoryText, { color: CATEGORY_COLORS[category] }]}>
               {CATEGORY_LABELS[category]}
             </Text>
           </View>
         </View>
-        <Text style={styles.amount}>${amount.toFixed(2)}</Text>
+        <View style={styles.amountPill}>
+          <Text style={styles.amount}>${amount.toFixed(2)}</Text>
+        </View>
       </View>
       <View style={styles.details}>
         <Text style={styles.detailText}>Paid by {paidBy}</Text>
@@ -89,12 +91,16 @@ export default function ExpenseCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
+    backgroundColor: '#0b1224',
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#1f2937',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
   },
   header: {
     flexDirection: 'row',
@@ -108,14 +114,17 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 6,
+    color: '#e2e8f0',
   },
   categoryBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
   },
   categoryText: {
     fontSize: 11,
@@ -123,8 +132,18 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#3b82f6',
+    fontWeight: '800',
+    color: '#e0f2fe',
+  },
+  amountPill: {
+    backgroundColor: '#0ea5e9',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    minWidth: 96,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#38bdf8',
   },
   details: {
     flexDirection: 'row',
@@ -133,7 +152,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: '#cbd5e1',
   },
   footer: {
     flexDirection: 'row',
@@ -141,7 +160,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: '#1f2937',
   },
   yourShare: {
     flexDirection: 'row',
@@ -150,12 +169,12 @@ const styles = StyleSheet.create({
   },
   yourShareLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#94a3b8',
   },
   yourShareAmount: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#10b981',
+    fontWeight: '700',
+    color: '#34d399',
   },
   actions: {
     flexDirection: 'row',
@@ -165,6 +184,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#1f2937',
   },
   editText: {
     color: '#3b82f6',

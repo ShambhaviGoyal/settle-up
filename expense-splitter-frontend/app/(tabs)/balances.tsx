@@ -5,9 +5,9 @@ import PaymentButton from '../../components/PaymentButton';
 import { expenseAPI, groupAPI } from '../../services/api';
 
 import { useRouter } from 'expo-router';
-const router = useRouter();
 
 export default function BalancesScreen() {
+  const router = useRouter();
   const [groups, setGroups] = useState<any[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
   const [balances, setBalances] = useState<any[]>([]);
@@ -122,10 +122,24 @@ export default function BalancesScreen() {
         <RefreshControl refreshing={loading} onRefresh={loadBalances} />
       }
     >
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>Balances</Text>
-        <TouchableOpacity onPress={() => router.push('/settlements')}>
-          <Text style={styles.historyLink}>Payments →</Text>
+      <View style={styles.heroCard}>
+        <View style={styles.heroTextBlock}>
+          <Text style={styles.kicker}>Settle smarter</Text>
+          <Text style={styles.title}>Balances</Text>
+          <Text style={styles.subtitle}>Track who owes whom at a glance, then clear it with a tap.</Text>
+        </View>
+        <View style={styles.heroChips}>
+          <View style={styles.heroChip}>
+            <Text style={styles.heroChipLabel}>You owe</Text>
+            <Text style={styles.heroChipValue}>${totalYouOwe.toFixed(2)}</Text>
+          </View>
+          <View style={[styles.heroChip, styles.heroChipPositive]}>
+            <Text style={styles.heroChipLabel}>Owed to you</Text>
+            <Text style={styles.heroChipValue}>${totalOwesYou.toFixed(2)}</Text>
+          </View>
+        </View>
+        <TouchableOpacity style={styles.historyButton} onPress={() => router.push('/settlements')}>
+          <Text style={styles.historyLink}>View payment history →</Text>
         </TouchableOpacity>
       </View>
 
@@ -255,19 +269,81 @@ export default function BalancesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0f172a',
     padding: 20,
     paddingTop: 60,
   },
+  heroCard: {
+    backgroundColor: '#0b1224',
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    marginBottom: 18,
+  },
+  heroTextBlock: {
+    gap: 6,
+  },
+  kicker: {
+    color: '#94a3b8',
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontWeight: '800',
+    color: '#e2e8f0',
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#cbd5e1',
+    lineHeight: 22,
+    marginTop: 4,
+  },
+  heroChips: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  heroChip: {
+    flex: 1,
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+  heroChipPositive: {
+    borderColor: '#22c55e',
+  },
+  heroChipLabel: {
+    color: '#94a3b8',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  heroChipValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#e2e8f0',
+    marginTop: 6,
+  },
+  historyButton: {
+    marginTop: 12,
+  },
+  historyLink: {
+    color: '#60a5fa',
+    fontSize: 14,
+    fontWeight: '700',
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: '700',
+    color: '#cbd5e1',
     marginBottom: 8,
   },
   groupSelector: {
@@ -275,24 +351,25 @@ const styles = StyleSheet.create({
   },
   groupChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: '#1f2937',
+    backgroundColor: '#0f172a',
     marginRight: 8,
   },
   groupChipSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   groupChipText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#cbd5e1',
+    fontWeight: '600',
   },
   groupChipTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
+    color: '#e2e8f0',
+    fontWeight: '700',
   },
   summaryContainer: {
     flexDirection: 'row',
@@ -302,85 +379,93 @@ const styles = StyleSheet.create({
   summaryCard: {
     flex: 1,
     padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
+    borderRadius: 14,
+    borderWidth: 1,
+    backgroundColor: '#0b1224',
+    borderColor: '#1f2937',
   },
   oweCard: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    borderColor: '#f87171',
   },
   owedCard: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#bbf7d0',
+    borderColor: '#34d399',
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    color: '#94a3b8',
+    marginBottom: 6,
+    fontWeight: '700',
   },
   summaryAmount: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#e2e8f0',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     marginBottom: 12,
-    color: '#374151',
+    color: '#e2e8f0',
+    letterSpacing: 0.2,
   },
   balanceCard: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#0b1224',
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#1f2937',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
   },
   balanceInfo: {
     marginBottom: 12,
   },
   personName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 4,
+    color: '#e2e8f0',
   },
   groupName: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#94a3b8',
     marginBottom: 8,
   },
   amountOwe: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ef4444',
+    fontWeight: '800',
+    color: '#f87171',
   },
   amountOwed: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#10b981',
+    fontWeight: '800',
+    color: '#34d399',
   },
   paymentButtons: {
     gap: 8,
   },
   noPaymentInfo: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#94a3b8',
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 12,
   },
   remindButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#111827',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#1f2937',
   },
   remindButtonText: {
-    color: '#374151',
+    color: '#e2e8f0',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   emptyState: {
     flex: 1,
@@ -390,32 +475,25 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#6b7280',
+    color: '#94a3b8',
   },
   paymentSection: {
-  gap: 8,
-  minWidth: 180,
+    gap: 8,
+    minWidth: 180,
   },
   markPaidButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#22c55e',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
   },
   markPaidText: {
-    color: '#fff',
+    color: '#052e16',
     fontSize: 14,
-    fontWeight: '600',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  historyLink: {
-    color: '#3b82f6',
-    fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '800',
   },
 });

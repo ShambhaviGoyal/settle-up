@@ -65,7 +65,13 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+      <View style={styles.pageHeader}>
+        <View>
+          <Text style={styles.kicker}>Your identity</Text>
+          <Text style={styles.title}>Profile</Text>
+          <Text style={styles.subtitle}>Keep contact and payment info up to date for faster settlements.</Text>
+        </View>
+      </View>
 
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
@@ -80,29 +86,33 @@ export default function ProfileScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Personal Information</Text>
-        
-        <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-        />
+        <View style={styles.card}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Your full name"
+            placeholderTextColor="#94a3b8"
+          />
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={[styles.input, styles.inputDisabled]}
-          value={email}
-          editable={false}
-        />
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            value={email}
+            editable={false}
+          />
 
-        <Text style={styles.label}>Phone (Optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="+1 (555) 123-4567"
-        />
+          <Text style={styles.label}>Phone (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="+1 (555) 123-4567"
+            placeholderTextColor="#94a3b8"
+          />
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -110,33 +120,37 @@ export default function ProfileScreen() {
         <Text style={styles.sectionDescription}>
           Add your payment handles so people can pay you easily
         </Text>
-        
-        <Text style={styles.label}>Venmo Handle</Text>
-        <TextInput
-          style={styles.input}
-          value={venmoHandle}
-          onChangeText={setVenmoHandle}
-          placeholder="@username"
-          autoCapitalize="none"
-        />
+        <View style={styles.card}>
+          <Text style={styles.label}>Venmo Handle</Text>
+          <TextInput
+            style={styles.input}
+            value={venmoHandle}
+            onChangeText={setVenmoHandle}
+            placeholder="@username"
+            placeholderTextColor="#94a3b8"
+            autoCapitalize="none"
+          />
 
-        <Text style={styles.label}>Zelle Email/Phone</Text>
-        <TextInput
-          style={styles.input}
-          value={zelleHandle}
-          onChangeText={setZelleHandle}
-          placeholder="email@example.com or phone"
-          autoCapitalize="none"
-        />
+          <Text style={styles.label}>Zelle Email/Phone</Text>
+          <TextInput
+            style={styles.input}
+            value={zelleHandle}
+            onChangeText={setZelleHandle}
+            placeholder="email@example.com or phone"
+            placeholderTextColor="#94a3b8"
+            autoCapitalize="none"
+          />
 
-        <Text style={styles.label}>PayPal Handle</Text>
-        <TextInput
-          style={styles.input}
-          value={paypalHandle}
-          onChangeText={setPaypalHandle}
-          placeholder="@username or username"
-          autoCapitalize="none"
-        />
+          <Text style={styles.label}>PayPal Handle</Text>
+          <TextInput
+            style={styles.input}
+            value={paypalHandle}
+            onChangeText={setPaypalHandle}
+            placeholder="@username or username"
+            placeholderTextColor="#94a3b8"
+            autoCapitalize="none"
+          />
+        </View>
       </View>
 
       <TouchableOpacity 
@@ -161,14 +175,29 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0f172a',
     padding: 20,
     paddingTop: 60,
   },
+  pageHeader: {
+    marginBottom: 16,
+  },
+  kicker: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
+    fontWeight: '800',
+    marginBottom: 6,
+    color: '#e2e8f0',
+  },
+  subtitle: {
+    color: '#cbd5e1',
+    fontSize: 15,
+    lineHeight: 22,
   },
   avatarContainer: {
     alignItems: 'center',
@@ -178,21 +207,27 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2563eb',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    borderWidth: 3,
+    borderColor: '#1f2937',
+    shadowColor: '#2563eb',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
   },
   avatarText: {
     fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '800',
+    color: '#e2e8f0',
   },
   changePhotoButton: {
     padding: 8,
   },
   changePhotoText: {
-    color: '#3b82f6',
+    color: '#60a5fa',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -201,60 +236,78 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     marginBottom: 8,
-    color: '#374151',
+    color: '#e2e8f0',
   },
   sectionDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#94a3b8',
     marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#0b1224',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 8,
-    color: '#6b7280',
+    color: '#cbd5e1',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: '#1f2937',
+    borderRadius: 10,
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
+    backgroundColor: '#0f172a',
+    color: '#e2e8f0',
   },
   inputDisabled: {
-    backgroundColor: '#f3f4f6',
-    color: '#6b7280',
+    backgroundColor: '#111827',
+    color: '#94a3b8',
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#22c55e',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 12,
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.32,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 16,
   },
   saveButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#64748b',
+    shadowOpacity: 0,
   },
   saveButtonText: {
-    color: '#fff',
+    color: '#052e16',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   logoutButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#111827',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#1f2937',
   },
   logoutButtonText: {
-    color: '#ef4444',
+    color: '#f87171',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   spacer: {
     height: 40,

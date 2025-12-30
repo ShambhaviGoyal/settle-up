@@ -206,141 +206,157 @@ const handleAddExpense = async () => {
   return (
     <>
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>Add Expense</Text>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="What was this expense for?"
-            value={description}
-            onChangeText={setDescription}
-          />
-
-          <Text style={styles.label}>Amount</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="0.00"
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="decimal-pad"
-          />
-
-          <Text style={styles.label}>Category</Text>
-          <View style={styles.categorySelector}>
-            {CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.value}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category.value && {
-                    backgroundColor: category.color,
-                    borderColor: category.color,
-                  }
-                ]}
-                onPress={() => setSelectedCategory(category.value)}
-              >
-                <Text style={[
-                  styles.categoryButtonText,
-                  selectedCategory === category.value && styles.categoryButtonTextSelected
-                ]}>
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+        <View style={styles.pageHeader}>
+          <View>
+            <Text style={styles.kicker}>Capture expenses</Text>
+            <Text style={styles.title}>Add Expense</Text>
+            <Text style={styles.subtitle}>Organize receipts, categories and splits with clarity.</Text>
           </View>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeEmoji}>✨</Text>
+            <Text style={styles.headerBadgeText}>Smarter forms, zero hassle</Text>
+          </View>
+        </View>
 
-          <Text style={styles.label}>Group</Text>
-          {groups.length === 0 ? (
-            <Text style={styles.noGroupsText}>No groups available. Create a group first!</Text>
-          ) : (
-            <View style={styles.groupSelector}>
-              {groups.map((group) => (
+        <View style={styles.formCard}>
+          <View style={styles.form}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="What was this expense for?"
+              placeholderTextColor="#94a3b8"
+              value={description}
+              onChangeText={setDescription}
+            />
+
+            <Text style={styles.label}>Amount</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              placeholderTextColor="#94a3b8"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="decimal-pad"
+            />
+
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.categorySelector}>
+              {CATEGORIES.map((category) => (
                 <TouchableOpacity
-                  key={group.group_id}
+                  key={category.value}
                   style={[
-                    styles.groupButton,
-                    selectedGroup?.group_id === group.group_id && styles.groupButtonSelected
+                    styles.categoryButton,
+                    selectedCategory === category.value && {
+                      backgroundColor: category.color + '33',
+                      borderColor: category.color,
+                    }
                   ]}
-                  onPress={() => setSelectedGroup(group)}
+                  onPress={() => setSelectedCategory(category.value)}
                 >
                   <Text style={[
-                    styles.groupButtonText,
-                    selectedGroup?.group_id === group.group_id && styles.groupButtonTextSelected
+                    styles.categoryButtonText,
+                    selectedCategory === category.value && styles.categoryButtonTextSelected
                   ]}>
-                    {group.name}
+                    {category.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-          )}
 
-          {/* ===== ADDED CODE (exact as provided) ===== */}
-          <Text style={styles.label}>Split With</Text>
-          <View style={styles.splitTypeSelector}>
-            <TouchableOpacity
-              style={[styles.splitTypeButton, splitType === 'equal' && styles.splitTypeButtonSelected]}
-              onPress={() => setSplitType('equal')}
-            >
-              <Text style={[styles.splitTypeText, splitType === 'equal' && styles.splitTypeTextSelected]}>
-                Equal Split
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.splitTypeButton, splitType === 'custom' && styles.splitTypeButtonSelected]}
-              onPress={() => setSplitType('custom')}
-            >
-              <Text style={[styles.splitTypeText, splitType === 'custom' && styles.splitTypeTextSelected]}>
-                Custom Amounts
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.membersList}>
-            {members.map((member) => (
-              <View key={member.user_id} style={styles.memberRow}>
-                <TouchableOpacity
-                  style={styles.memberCheckbox}
-                  onPress={() => toggleMember(member.user_id)}
-                >
-                  <View style={[styles.checkbox, selectedMembers.includes(member.user_id) && styles.checkboxChecked]}>
-                    {selectedMembers.includes(member.user_id) && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.memberName}>{member.name}</Text>
-                </TouchableOpacity>
-                
-                {splitType === 'custom' && selectedMembers.includes(member.user_id) && (
-                  <TextInput
-                    style={styles.amountInput}
-                    placeholder="0.00"
-                    value={customAmounts[member.user_id] || ''}
-                    onChangeText={(text) => setCustomAmounts({ ...customAmounts, [member.user_id]: text })}
-                    keyboardType="decimal-pad"
-                  />
-                )}
+            <Text style={styles.label}>Group</Text>
+            {groups.length === 0 ? (
+              <Text style={styles.noGroupsText}>No groups available. Create a group first!</Text>
+            ) : (
+              <View style={styles.groupSelector}>
+                {groups.map((group) => (
+                  <TouchableOpacity
+                    key={group.group_id}
+                    style={[
+                      styles.groupButton,
+                      selectedGroup?.group_id === group.group_id && styles.groupButtonSelected
+                    ]}
+                    onPress={() => setSelectedGroup(group)}
+                  >
+                    <Text style={[
+                      styles.groupButtonText,
+                      selectedGroup?.group_id === group.group_id && styles.groupButtonTextSelected
+                    ]}>
+                      {group.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            ))}
+            )}
+
+            {/* ===== ADDED CODE (exact as provided) ===== */}
+            <Text style={styles.label}>Split With</Text>
+            <View style={styles.splitTypeSelector}>
+              <TouchableOpacity
+                style={[styles.splitTypeButton, splitType === 'equal' && styles.splitTypeButtonSelected]}
+                onPress={() => setSplitType('equal')}
+              >
+                <Text style={[styles.splitTypeText, splitType === 'equal' && styles.splitTypeTextSelected]}>
+                  Equal Split
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.splitTypeButton, splitType === 'custom' && styles.splitTypeButtonSelected]}
+                onPress={() => setSplitType('custom')}
+              >
+                <Text style={[styles.splitTypeText, splitType === 'custom' && styles.splitTypeTextSelected]}>
+                  Custom Amounts
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.membersList}>
+              {members.map((member) => (
+                <View key={member.user_id} style={styles.memberRow}>
+                  <TouchableOpacity
+                    style={styles.memberCheckbox}
+                    onPress={() => toggleMember(member.user_id)}
+                  >
+                    <View style={[styles.checkbox, selectedMembers.includes(member.user_id) && styles.checkboxChecked]}>
+                      {selectedMembers.includes(member.user_id) && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                    <Text style={styles.memberName}>{member.name}</Text>
+                  </TouchableOpacity>
+                  
+                  {splitType === 'custom' && selectedMembers.includes(member.user_id) && (
+                    <TextInput
+                      style={styles.amountInput}
+                      placeholder="0.00"
+                      placeholderTextColor="#94a3b8"
+                      value={customAmounts[member.user_id] || ''}
+                      onChangeText={(text) => setCustomAmounts({ ...customAmounts, [member.user_id]: text })}
+                      keyboardType="decimal-pad"
+                    />
+                  )}
+                </View>
+              ))}
+            </View>
+            {/* ===== END ADDED CODE ===== */}
+
+            <TouchableOpacity 
+              style={styles.scanButton}
+              onPress={() => setShowCamera(true)}
+            >
+              <Text style={styles.scanButtonText}>
+                {receiptUri ? '✓ Receipt scanned' : '📸 Scan receipt'}
+              </Text>
+              <Text style={styles.scanButtonHint}>Attach a photo and we will auto-fill details.</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.addButton, loading && styles.addButtonDisabled]}
+              onPress={handleAddExpense}
+              disabled={loading || groups.length === 0}
+            >
+              <Text style={styles.addButtonText}>
+                {loading ? 'Adding...' : 'Add Expense'}
+              </Text>
+            </TouchableOpacity>
           </View>
-          {/* ===== END ADDED CODE ===== */}
-
-          <TouchableOpacity 
-            style={styles.scanButton}
-            onPress={() => setShowCamera(true)}
-          >
-            <Text style={styles.scanButtonText}>
-              {receiptUri ? '✓ Receipt Scanned' : '📸 Scan Receipt'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.addButton, loading && styles.addButtonDisabled]}
-            onPress={handleAddExpense}
-            disabled={loading || groups.length === 0}
-          >
-            <Text style={styles.addButtonText}>
-              {loading ? 'Adding...' : 'Add Expense'}
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -361,28 +377,81 @@ const handleAddExpense = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0f172a',
     padding: 20,
     paddingTop: 60,
   },
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  kicker: {
+    color: '#94a3b8',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    fontSize: 13,
+  },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
+    fontWeight: '800',
+    color: '#e2e8f0',
+    marginTop: 4,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: '#cbd5e1',
+    marginTop: 6,
+    lineHeight: 22,
+  },
+  headerBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#0ea5e933',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBadgeEmoji: {
+    fontSize: 20,
+  },
+  headerBadgeText: {
+    color: '#e0f2fe',
+    fontWeight: '700',
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  formCard: {
+    backgroundColor: '#0b1224',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 18,
   },
   form: {
     flex: 1,
+    padding: 18,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     marginBottom: 8,
-    color: '#374151',
+    color: '#e2e8f0',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderColor: '#1f2937',
+    backgroundColor: '#0f172a',
+    color: '#e2e8f0',
+    borderRadius: 10,
     padding: 12,
     fontSize: 16,
     marginBottom: 20,
@@ -390,34 +459,35 @@ const styles = StyleSheet.create({
   categorySelector: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     marginBottom: 24,
   },
   categoryButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: '#1f2937',
+    backgroundColor: '#0f172a',
   },
   categoryButtonText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: '#cbd5e1',
+    fontWeight: '700',
   },
   categoryButtonTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
+    color: '#0f172a',
+    fontWeight: '800',
   },
   noGroupsText: {
-    color: '#6b7280',
+    color: '#94a3b8',
     fontStyle: 'italic',
     marginBottom: 20,
   },
   groupSelector: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
     marginBottom: 30,
   },
   groupButton: {
@@ -425,84 +495,102 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: '#1f2937',
+    backgroundColor: '#0f172a',
   },
   groupButtonSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   groupButtonText: {
     fontSize: 14,
-    color: '#6b7280',
-  },
-  groupButtonTextSelected: {
-    color: '#fff',
+    color: '#cbd5e1',
     fontWeight: '600',
   },
+  groupButtonTextSelected: {
+    color: '#e2e8f0',
+    fontWeight: '700',
+  },
   scanButton: {
-    backgroundColor: '#f3f4f6',
-    padding: 16,
+    backgroundColor: '#0f172a',
+    padding: 14,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#1f2937',
   },
   scanButtonText: {
     fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '600',
+    color: '#e2e8f0',
+    fontWeight: '700',
+  },
+  scanButtonHint: {
+    marginTop: 4,
+    color: '#94a3b8',
+    fontSize: 12,
   },
   addButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#22c55e',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 16,
   },
   addButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#64748b',
+    shadowOpacity: 0,
   },
   addButtonText: {
-    color: '#fff',
+    color: '#052e16',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   splitTypeSelector: {
-  flexDirection: 'row',
-  gap: 8,
-  marginBottom: 16,
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
   },
   splitTypeButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: '#1f2937',
+    backgroundColor: '#0f172a',
     alignItems: 'center',
   },
   splitTypeButtonSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   splitTypeText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#cbd5e1',
+    fontWeight: '700',
   },
   splitTypeTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
+    color: '#e2e8f0',
+    fontWeight: '800',
   },
   membersList: {
     marginBottom: 20,
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    borderRadius: 12,
   },
   memberRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f2937',
   },
   memberCheckbox: {
     flexDirection: 'row',
@@ -513,15 +601,16 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
+    borderColor: '#1f2937',
+    borderRadius: 8,
     marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#0b1224',
   },
   checkboxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   checkmark: {
     color: '#fff',
@@ -530,14 +619,17 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: 15,
-    color: '#374151',
+    color: '#e2e8f0',
+    fontWeight: '600',
   },
   amountInput: {
     width: 80,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
-    padding: 8,
+    borderColor: '#1f2937',
+    borderRadius: 10,
+    padding: 10,
     textAlign: 'right',
+    color: '#e2e8f0',
+    backgroundColor: '#0b1224',
   },
 });

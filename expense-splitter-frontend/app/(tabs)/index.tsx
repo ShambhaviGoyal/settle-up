@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CreateGroupModal from '../../components/CreateGroupModal';
 import ExpenseCard from '../../components/ExpenseCard';
@@ -35,6 +35,11 @@ export default function HomeScreen() {
     { id: 3, description: 'Uber to airport', amount: 45.50, paidBy: 'Bob', date: 'Dec 24', splitBetween: 2 },
   ];
 
+  const totalMembers = useMemo(
+    () => groups.reduce((count: number, group: any) => count + (group.member_count || 0), 0),
+    [groups]
+  );
+
   return (
     <>
       <ScrollView 
@@ -43,37 +48,67 @@ export default function HomeScreen() {
           <RefreshControl refreshing={loading} onRefresh={loadGroups} />
         }
       >
-        <Text style={styles.title}>Expense Splitter</Text>
-        <Text style={styles.subtitle}>Your Groups</Text>
-        
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Text style={styles.addButtonText}>+ Create New Group</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.insightsButton}
-          onPress={() => router.push('/insights')}
-        >
-          <Text style={styles.insightsButtonText}>💡 AI Insights</Text>
-        </TouchableOpacity>
+        <View style={styles.heroCard}>
+          <View style={styles.heroLeft}>
+            <Text style={styles.kicker}>Welcome back</Text>
+            <Text style={styles.title}>Expense Splitter</Text>
+            <Text style={styles.subtitle}>Keep every shared cost transparent and effortless.</Text>
+            <View style={styles.heroStats}>
+              <View style={styles.statBadge}>
+                <Text style={styles.statNumber}>{groups.length}</Text>
+                <Text style={styles.statLabel}>Active groups</Text>
+              </View>
+              <View style={styles.statBadge}>
+                <Text style={styles.statNumber}>{totalMembers}</Text>
+                <Text style={styles.statLabel}>Friends connected</Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.heroActions}>
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={() => setShowCreateModal(true)}
+            >
+              <Text style={styles.primaryButtonText}>+ Create group</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.secondaryButton}
+              onPress={() => router.push('/budgets')}
+            >
+              <Text style={styles.secondaryButtonText}>💰 Budgets</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        <TouchableOpacity 
-          style={styles.searchButton}
-          onPress={() => router.push('/search-expenses')}
-        >
-          <Text style={styles.searchButtonText}>🔍 Search Expenses</Text>
-        </TouchableOpacity>
+        <View style={styles.quickActions}>
+          <TouchableOpacity 
+            style={styles.actionChip}
+            onPress={() => router.push('/insights')}
+          >
+            <Text style={styles.actionEmoji}>💡</Text>
+            <View>
+              <Text style={styles.actionTitle}>AI Insights</Text>
+              <Text style={styles.actionSubtitle}>Smart tips from your history</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionChip}
+            onPress={() => router.push('/search-expenses')}
+          >
+            <Text style={styles.actionEmoji}>🔍</Text>
+            <View>
+              <Text style={styles.actionTitle}>Search</Text>
+              <Text style={styles.actionSubtitle}>Find any bill instantly</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-        {/* ✅ ADDED BUDGET BUTTON */}
-        <TouchableOpacity 
-          style={styles.budgetButton}
-          onPress={() => router.push('/budgets')}
-        >
-          <Text style={styles.budgetButtonText}>💰 Budgets</Text>
-        </TouchableOpacity>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Your groups</Text>
+          <TouchableOpacity onPress={loadGroups} disabled={loading}>
+            <Text style={styles.sectionLink}>{loading ? 'Refreshing...' : 'Refresh'}</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.groupList}>
           {groups.length === 0 ? (
@@ -92,7 +127,10 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <Text style={styles.subtitle}>Recent Expenses</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent expenses</Text>
+          <Text style={styles.sectionLink}>Tracked automatically</Text>
+        </View>
         <View style={styles.expenseList}>
           {recentExpenses.map(expense => (
             <ExpenseCard
@@ -119,33 +157,150 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#0f172a',
     padding: 20,
     paddingTop: 60,
   },
+  heroCard: {
+    backgroundColor: '#111827',
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 24,
+  },
+  heroLeft: {
+    gap: 6,
+  },
+  kicker: {
+    color: '#94a3b8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#e2e8f0',
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 16,
-    marginTop: 24,
+    fontSize: 15,
+    color: '#cbd5e1',
+    marginBottom: 12,
+    lineHeight: 22,
   },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    padding: 16,
-    borderRadius: 12,
+  heroStats: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 6,
+  },
+  statBadge: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: '#0ea5e9',
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    shadowColor: '#0ea5e9',
+    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#f8fafc',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#e0f2fe',
+    fontWeight: '600',
+  },
+  heroActions: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  primaryButton: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
+    shadowColor: '#1d4ed8',
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 18,
   },
-  addButtonText: {
-    color: '#fff',
+  primaryButtonText: {
+    color: '#e5edff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: '#fbbf24',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 18,
+  },
+  actionChip: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#111827',
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    alignItems: 'center',
+  },
+  actionEmoji: {
+    fontSize: 26,
+  },
+  actionTitle: {
+    color: '#e2e8f0',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  actionSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#e2e8f0',
+    letterSpacing: 0.2,
+  },
+  sectionLink: {
+    color: '#60a5fa',
     fontWeight: '600',
+    fontSize: 13,
   },
   groupList: {
     marginBottom: 20,
@@ -156,54 +311,14 @@ const styles = StyleSheet.create({
   emptyState: {
     padding: 40,
     alignItems: 'center',
+    backgroundColor: '#0b1224',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1f2937',
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#94a3b8',
     textAlign: 'center',
-  },
-  insightsButton: {
-    backgroundColor: '#eff6ff',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  insightsButtonText: {
-    color: '#1e40af',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  searchButton: {
-    backgroundColor: '#f3f4f6',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  searchButtonText: {
-    color: '#374151',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-
-  /* ✅ ADDED STYLES */
-  budgetButton: {
-    backgroundColor: '#fef3c7',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  budgetButtonText: {
-    color: '#92400e',
-    fontSize: 15,
-    fontWeight: '600',
   },
 });
