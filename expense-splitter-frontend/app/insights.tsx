@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors, BorderRadius, Shadows, Spacing, Typography } from '../constants/theme';
 
 const API_URL = 'http://192.168.29.52:3000/api';
 
@@ -35,55 +36,55 @@ export default function InsightsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: Colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: Colors.border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: Colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>AI Insights</Text>
+        <Text style={[styles.title, { color: Colors.textPrimary }]}>AI Insights</Text>
         <View style={{ width: 60 }} />
       </View>
 
       <ScrollView style={styles.content}>
         {loading ? (
-          <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <>
             {stats && (
               <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>${stats.totalSpent}</Text>
-                  <Text style={styles.statLabel}>Total Spent</Text>
+                <View style={[styles.statCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+                  <Text style={[styles.statValue, { color: Colors.primary }]}>${stats.totalSpent}</Text>
+                  <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Total Spent</Text>
                 </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>{stats.expenseCount}</Text>
-                  <Text style={styles.statLabel}>Expenses</Text>
+                <View style={[styles.statCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+                  <Text style={[styles.statValue, { color: Colors.primary }]}>{stats.expenseCount}</Text>
+                  <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Expenses</Text>
                 </View>
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>${stats.avgPerExpense}</Text>
-                  <Text style={styles.statLabel}>Avg/Expense</Text>
+                <View style={[styles.statCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+                  <Text style={[styles.statValue, { color: Colors.primary }]}>${stats.avgPerExpense}</Text>
+                  <Text style={[styles.statLabel, { color: Colors.textSecondary }]}>Avg/Expense</Text>
                 </View>
               </View>
             )}
 
-            <View style={styles.insightsCard}>
-              <Text style={styles.insightsTitle}>💡 Your Spending Analysis</Text>
-              <Text style={styles.insightsText}>{insights}</Text>
+            <View style={[styles.insightsCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+              <Text style={[styles.insightsTitle, { color: Colors.textPrimary }]}>💡 Your Spending Analysis</Text>
+              <Text style={[styles.insightsText, { color: Colors.textSecondary }]}>{insights}</Text>
             </View>
 
             {stats?.categoryBreakdown && (
               <View style={styles.categorySection}>
-                <Text style={styles.sectionTitle}>Category Breakdown</Text>
+                <Text style={[styles.sectionTitle, { color: Colors.textPrimary }]}>Category Breakdown</Text>
                 {Object.entries(stats.categoryBreakdown).map(([category, amount]: any) => (
-                  <View key={category} style={styles.categoryRow}>
-                    <Text style={styles.categoryName}>{category}</Text>
-                    <Text style={styles.categoryAmount}>${amount.toFixed(2)}</Text>
+                  <View key={category} style={[styles.categoryRow, { borderBottomColor: Colors.border }]}>
+                    <Text style={[styles.categoryName, { color: Colors.textSecondary }]}>{category}</Text>
+                    <Text style={[styles.categoryAmount, { color: Colors.textPrimary }]}>${amount.toFixed(2)}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            <TouchableOpacity style={styles.refreshButton} onPress={loadInsights}>
+            <TouchableOpacity style={[styles.refreshButton, { backgroundColor: Colors.primary }]} onPress={loadInsights}>
               <Text style={styles.refreshButtonText}>🔄 Refresh Insights</Text>
             </TouchableOpacity>
           </>
@@ -96,7 +97,6 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -105,10 +105,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   backText: {
-    color: '#3b82f6',
     fontSize: 16,
   },
   title: {
@@ -126,41 +124,33 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#f9fafb',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#3b82f6',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
   },
   insightsCard: {
-    backgroundColor: '#eff6ff',
     padding: 20,
     borderRadius: 12,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
   },
   insightsTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#1e40af',
   },
   insightsText: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#1e3a8a',
   },
   categorySection: {
     marginBottom: 20,
@@ -169,27 +159,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
-    color: '#374151',
   },
   categoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   categoryName: {
     fontSize: 15,
-    color: '#6b7280',
     textTransform: 'capitalize',
   },
   categoryAmount: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
   },
   refreshButton: {
-    backgroundColor: '#3b82f6',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',

@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import AddMemberModal from '../components/AddMemberModal';
 import ExpenseCard from '../components/ExpenseCard';
 import RecurringExpenseModal from '../components/RecurringExpenseModal';
 import { expenseAPI, groupAPI } from '../services/api';
+import { Colors, Shadows, Spacing, BorderRadius, Typography } from '../constants/theme';
 
 export default function GroupDetailsScreen() {
   const { groupId, groupName } = useLocalSearchParams();
@@ -22,6 +24,10 @@ export default function GroupDetailsScreen() {
   const [editAmount, setEditAmount] = useState('');
 
   const [addMemberModalVisible, setAddMemberModalVisible] = useState(false);
+  const [editGroupModalVisible, setEditGroupModalVisible] = useState(false);
+  const [groupNameEdit, setGroupNameEdit] = useState('');
+  const [groupDescriptionEdit, setGroupDescriptionEdit] = useState('');
+  const [isGroupCreator, setIsGroupCreator] = useState(false);
 
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [recurringExpenses, setRecurringExpenses] = useState<any[]>([]);
@@ -56,8 +62,45 @@ export default function GroupDetailsScreen() {
       setMembers(groupDetails.members);
       setExpenses(groupExpenses);
       setBalance(userBalance);
-    } catch (error) {
+      
+      // Check if current user is the creator
+      const userStr = await AsyncStorage.getItem('user');
+      const user = JSON.parse(userStr || '{}');
+      setIsGroupCreator(groupDetails.group.created_by === user.userId);
+      setGroupNameEdit(groupDetails.group.name || '');
+      setGroupDescriptionEdit(groupDetails.group.description || '');
+    } catch (error: any) {
       console.error('Error loading group data:', error);
+      
+      // Handle 403 - Not a member
+      if (error.response?.status === 403) {
+        Alert.alert(
+          'Access Denied',
+          'You are not a member of this group. You may have been removed or the group may have been deleted.',
+          [
+            {
+              text: 'Go Back',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.error || 'Failed to load group data. Please try again.',
+          [
+            {
+              text: 'Retry',
+              onPress: loadGroupData,
+            },
+            {
+              text: 'Go Back',
+              style: 'cancel',
+              onPress: () => router.back(),
+            },
+          ]
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -124,15 +167,91 @@ export default function GroupDetailsScreen() {
       console.error('Error loading recurring:', error);
     }
   };
+
+  const handleUpdateGroup = async () => {
+    try {
+      await groupAPI.updateGroup(Number(groupId), groupNameEdit, groupDescriptionEdit);
+      Alert.alert('Success', 'Group updated successfully');
+      setEditGroupModalVisible(false);
+      loadGroupData();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update group');
+    }
+  };
+
+  const handleLeaveGroup = () => {
+    Alert.alert(
+      'Leave Group',
+      'Are you sure you want to leave this group? You will lose access to all expenses and balances.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await groupAPI.leaveGroup(Number(groupId));
+              Alert.alert('Success', 'Left group successfully');
+              router.back();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to leave group');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteGroup = () => {
+    Alert.alert(
+      'Delete Group',
+      'Are you sure you want to delete this group? This will permanently delete all expenses, balances, and settlements. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await groupAPI.deleteGroup(Number(groupId));
+              Alert.alert('Success', 'Group deleted successfully');
+              router.back();
+            } catch (error: any) {
+              Alert.alert('Error', error.response?.data?.error || 'Failed to delete group');
+            }
+          },
+        },
+      ]
+    );
+  };
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: Colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+      <View style={[styles.header, { borderBottomColor: Colors.border }]}>
+        <TouchableOpacity 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.back();
+          }} 
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.backText, { color: Colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{groupName}</Text>
-        <View style={{ width: 60 }} />
+        <Text style={[styles.title, { color: Colors.textPrimary }]}>{groupName}</Text>
+        <TouchableOpacity 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (isGroupCreator) {
+              setEditGroupModalVisible(true);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          {isGroupCreator && (
+            <Text style={styles.editButtonText}>⚙️</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -143,15 +262,15 @@ export default function GroupDetailsScreen() {
       >
         {/* Balance Summary */}
         {balance && (
-          <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>Your Balance</Text>
+          <View style={[styles.balanceCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+            <Text style={[styles.balanceLabel, { color: Colors.textSecondary }]}>Your Balance</Text>
             <Text style={[
               styles.balanceAmount,
-              { color: balance.balance > 0 ? '#10b981' : balance.balance < 0 ? '#ef4444' : '#6b7280' }
+              { color: balance.balance > 0 ? '#10b981' : balance.balance < 0 ? '#ef4444' : Colors.textTertiary }
             ]}>
               {balance.balance > 0 ? '+' : ''}{balance.balance < 0 ? '-' : ''}${Math.abs(balance.balance).toFixed(2)}
             </Text>
-            <Text style={styles.balanceDetail}>
+            <Text style={[styles.balanceDetail, { color: Colors.textSecondary }]}>
               Paid: ${balance.totalPaid.toFixed(2)} • Owe: ${balance.totalOwed.toFixed(2)}
             </Text>
           </View>
@@ -160,23 +279,27 @@ export default function GroupDetailsScreen() {
         {/* Members */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Members ({members.length})</Text>
+            <Text style={[styles.sectionTitle, { color: Colors.textPrimary }]}>Members ({members.length})</Text>
             <TouchableOpacity 
-              style={styles.addMemberButton}
-              onPress={() => setAddMemberModalVisible(true)}
+              style={[styles.addMemberButton, { backgroundColor: Colors.primary }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setAddMemberModalVisible(true);
+              }}
+              activeOpacity={0.8}
             >
               <Text style={styles.addMemberButtonText}>+ Add</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.membersList}>
             {members.map(member => (
-              <View key={member.user_id} style={styles.memberChip}>
-                <View style={styles.memberAvatar}>
+              <View key={member.user_id} style={[styles.memberChip, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+                <View style={[styles.memberAvatar, { backgroundColor: Colors.primary }]}>
                   <Text style={styles.memberAvatarText}>
                     {member.name.split(' ').map((n: string) => n[0]).join('')}
                   </Text>
                 </View>
-                <Text style={styles.memberName}>{member.name}</Text>
+                <Text style={[styles.memberName, { color: Colors.textPrimary }]}>{member.name}</Text>
               </View>
             ))}
           </View>
@@ -184,12 +307,12 @@ export default function GroupDetailsScreen() {
 
         {/* Expenses */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: Colors.textPrimary }]}>
             Expenses ({expenses.length})
           </Text>
           {expenses.length === 0 ? (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No expenses yet</Text>
+              <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>No expenses yet</Text>
             </View>
           ) : (
             expenses.map(expense => (
@@ -212,17 +335,21 @@ export default function GroupDetailsScreen() {
         {/* Recurring Expenses */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recurring Expenses</Text>
+            <Text style={[styles.sectionTitle, { color: Colors.textPrimary }]}>Recurring Expenses</Text>
             <TouchableOpacity 
-              style={styles.addButton}
-              onPress={() => setShowRecurringModal(true)}
+              style={[styles.addButton, { backgroundColor: Colors.primary }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowRecurringModal(true);
+              }}
+              activeOpacity={0.8}
             >
               <Text style={styles.addButtonText}>+ Add</Text>
             </TouchableOpacity>
           </View>
           
           {recurringExpenses.length === 0 ? (
-            <Text style={styles.emptyText}>No recurring expenses</Text>
+            <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>No recurring expenses</Text>
           ) : (
             recurringExpenses.map(recurring => (
               <View key={recurring.recurring_id} style={styles.recurringCard}>
@@ -284,7 +411,7 @@ export default function GroupDetailsScreen() {
       {/* Add Member Modal */}
       <AddMemberModal
         visible={addMemberModalVisible}
-        groupId={Number(groupId)}
+        groupId={Number(groupId) || 0}
         onClose={() => setAddMemberModalVisible(false)}
         onMemberAdded={loadGroupData}
       />
@@ -295,6 +422,67 @@ export default function GroupDetailsScreen() {
         onClose={() => setShowRecurringModal(false)}
         onCreated={loadRecurringExpenses}
       />
+
+      {/* Edit Group Modal */}
+      <Modal
+        visible={editGroupModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEditGroupModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setEditGroupModalVisible(false)}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Edit Group</Text>
+            <TouchableOpacity onPress={handleUpdateGroup}>
+              <Text style={styles.saveText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalContent}>
+            <Text style={styles.label}>Group Name</Text>
+            <TextInput
+              style={styles.input}
+              value={groupNameEdit}
+              onChangeText={setGroupNameEdit}
+              placeholder="Enter group name"
+            />
+
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={groupDescriptionEdit}
+              onChangeText={setGroupDescriptionEdit}
+              placeholder="Enter group description (optional)"
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Group Actions Footer */}
+      <View style={styles.footer}>
+        {isGroupCreator ? (
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={handleDeleteGroup}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.deleteButtonText}>Delete Group</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.leaveButton}
+            onPress={handleLeaveGroup}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.leaveButtonText}>Leave Group</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -302,212 +490,208 @@ export default function GroupDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: Spacing.lg,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   backButton: {
-    padding: 8,
+    padding: Spacing.sm,
   },
   backText: {
-    color: '#3b82f6',
-    fontSize: 16,
+    ...Typography.bodyBold,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.h3,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: Spacing.lg,
   },
   balanceCard: {
-    backgroundColor: '#f9fafb',
-    padding: 20,
-    borderRadius: 12,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    ...Shadows.sm,
   },
   balanceLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+    ...Typography.caption,
+    marginBottom: Spacing.xs,
   },
   balanceAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    ...Typography.h1,
+    marginBottom: Spacing.xs,
   },
   balanceDetail: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.caption,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
+    ...Typography.h3,
   },
   addMemberButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    ...Shadows.sm,
   },
   addMemberButtonText: {
+    ...Typography.captionBold,
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   membersList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: Spacing.md,
   },
   memberChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    gap: 8,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.sm,
   },
   memberAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#3b82f6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   memberAvatarText: {
+    ...Typography.small,
     color: '#fff',
-    fontSize: 12,
     fontWeight: '600',
   },
   memberName: {
-    fontSize: 14,
-    color: '#374151',
+    ...Typography.caption,
   },
   emptyState: {
-    padding: 40,
+    padding: Spacing.xxl,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.body,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: Spacing.lg,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   cancelText: {
-    color: '#6b7280',
-    fontSize: 16,
+    ...Typography.body,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.h3,
   },
   saveText: {
-    color: '#3b82f6',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.bodyBold,
   },
   modalContent: {
-    padding: 20,
+    padding: Spacing.lg,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#374151',
+    ...Typography.captionBold,
+    marginBottom: Spacing.xs,
   },
   input: {
+    ...Typography.body,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   addButton: {
-  backgroundColor: '#3b82f6',
-  paddingHorizontal: 12,
-  paddingVertical: 6,
-  borderRadius: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    ...Shadows.sm,
   },
   addButtonText: {
+    ...Typography.captionBold,
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   recurringCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    ...Shadows.sm,
   },
   recurringDescription: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.bodyBold,
+    marginBottom: Spacing.xs / 2,
   },
   recurringDetails: {
-    fontSize: 13,
-    color: '#6b7280',
+    ...Typography.caption,
   },
   recurringActions: {
     alignItems: 'flex-end',
   },
   statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    fontSize: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: BorderRadius.full,
+    ...Typography.small,
     fontWeight: '600',
-    backgroundColor: '#e5e7eb',
-    color: '#6b7280',
   },
   statusActive: {
-    backgroundColor: '#d1fae5',
-    color: '#065f46',
   },
   emptyTextItalic: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.caption,
     fontStyle: 'italic',
+  },
+  editButtonText: {
+    fontSize: 20,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  footer: {
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+  },
+  leaveButton: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  leaveButtonText: {
+    ...Typography.bodyBold,
+  },
+  deleteButton: {
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  deleteButtonText: {
+    ...Typography.bodyBold,
   },
 });

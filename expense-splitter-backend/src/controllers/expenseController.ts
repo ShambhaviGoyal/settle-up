@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import pool from '../config/database';
 import { AuthRequest } from '../middleware/auth';
+import { createNotification } from './notificationController';
 
 // Get all expenses for a group
 export const getGroupExpenses = async (req: AuthRequest, res: Response) => {
@@ -38,7 +39,23 @@ export const getGroupExpenses = async (req: AuthRequest, res: Response) => {
 // Create new expense
 export const createExpense = async (req: AuthRequest, res: Response) => {
   const userId = req.userId;
-  const { groupId, amount, description, category, expenseDate, splitWith, splitType, customSplits } = req.body;
+  const { 
+    groupId, 
+    amount, 
+    description, 
+    category, 
+    expenseDate, 
+    splitWith, 
+    splitType, 
+    customSplits,
+    receiptImageBase64,
+    receiptImageUrl,
+    subtotal,
+    tax,
+    tip,
+    items,
+    itemizedSplits
+  } = req.body;
 
   try {
     if (!groupId || !amount || !description) {
@@ -59,57 +76,158 @@ export const createExpense = async (req: AuthRequest, res: Response) => {
     try {
       await client.query('BEGIN');
 
+      const isItemized = !!(items && items.length > 0 && itemizedSplits && Object.keys(itemizedSplits).length > 0);
+
+      // Insert expense with receipt data
       const expenseResult = await client.query(
-        `INSERT INTO expenses (group_id, paid_by, amount, description, category, expense_date)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO expenses (
+          group_id, paid_by, amount, description, category, expense_date,
+          receipt_image_url, receipt_image_base64, subtotal, tax, tip, is_itemized
+        )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          RETURNING *`,
-        [groupId, userId, amount, description, category || 'other', expenseDate || new Date()]
+        [
+          groupId, 
+          userId, 
+          amount, 
+          description, 
+          category || 'other', 
+          expenseDate || new Date(),
+          receiptImageUrl || null,
+          receiptImageBase64 || null,
+          subtotal || null,
+          tax || 0,
+          tip || 0,
+          isItemized || false
+        ]
       );
 
       const newExpense = expenseResult.rows[0];
 
-      // Handle different split types
-      let membersToSplit = splitWith;
-
-      if (!membersToSplit || membersToSplit.length === 0) {
-        // Default: equal split among all members
-        const membersResult = await client.query(
-          'SELECT user_id FROM group_members WHERE group_id = $1',
-          [groupId]
-        );
-        membersToSplit = membersResult.rows.map(row => row.user_id);
-      }
-
-      // Create splits based on type
-      if (splitType === 'custom' && customSplits) {
-        // Custom amounts per person
-        for (const split of customSplits) {
-          await client.query(
-            `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
-             VALUES ($1, $2, $3, $4)`,
-            [newExpense.expense_id, split.userId, split.amount, split.userId === userId]
+      // Handle itemized splits
+      if (isItemized && items && itemizedSplits) {
+        // Insert receipt items
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const itemResult = await client.query(
+            `INSERT INTO receipt_items (expense_id, name, price, item_order)
+             VALUES ($1, $2, $3, $4)
+             RETURNING *`,
+            [newExpense.expense_id, item.name, item.price, i]
           );
+
+          const newItem = itemResult.rows[0];
+
+          // Insert itemized splits (who gets this item)
+          if (itemizedSplits[item.name] && Array.isArray(itemizedSplits[item.name])) {
+            for (const userId of itemizedSplits[item.name]) {
+              await client.query(
+                `INSERT INTO itemized_splits (item_id, user_id)
+                 VALUES ($1, $2)`,
+                [newItem.item_id, userId]
+              );
+            }
+          }
         }
-      } else if (splitType === 'percentage' && customSplits) {
-        // Percentage splits
-        for (const split of customSplits) {
-          const splitAmount = (parseFloat(amount) * split.percentage) / 100;
+
+        // Calculate per-person totals from items
+        const userTotals: { [key: number]: number } = {};
+
+        // Get all items with their splits
+        const itemsResult = await client.query(
+          `SELECT ri.item_id, ri.price, array_agg(its.user_id) as user_ids
+           FROM receipt_items ri
+           LEFT JOIN itemized_splits its ON ri.item_id = its.item_id
+           WHERE ri.expense_id = $1
+           GROUP BY ri.item_id, ri.price`,
+          [newExpense.expense_id]
+        );
+
+        const totalItemsPrice = itemsResult.rows.reduce((sum, row) => sum + parseFloat(row.price), 0);
+        const actualSubtotal = subtotal || totalItemsPrice;
+        const actualTax = tax || 0;
+        const actualTip = tip || 0;
+
+        // Calculate item totals per user
+        for (const row of itemsResult.rows) {
+          const itemPrice = parseFloat(row.price);
+          const userIds = row.user_ids.filter((id: number) => id !== null);
+          
+          if (userIds.length > 0) {
+            const pricePerPerson = itemPrice / userIds.length;
+            for (const uid of userIds) {
+              userTotals[uid] = (userTotals[uid] || 0) + pricePerPerson;
+            }
+          }
+        }
+
+        // Distribute tax and tip proportionally
+        const totalBeforeTaxTip = actualSubtotal || totalItemsPrice;
+        if (totalBeforeTaxTip > 0) {
+          for (const uid in userTotals) {
+            const userSubtotal = userTotals[uid];
+            const proportion = userSubtotal / totalBeforeTaxTip;
+            userTotals[uid] = userSubtotal + (actualTax * proportion) + (actualTip * proportion);
+          }
+        }
+
+        // Create expense splits based on calculated totals
+        for (const uid in userTotals) {
           await client.query(
             `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
              VALUES ($1, $2, $3, $4)`,
-            [newExpense.expense_id, split.userId, splitAmount, split.userId === userId]
+            [newExpense.expense_id, parseInt(uid), userTotals[uid], parseInt(uid) === userId]
           );
         }
       } else {
-        // Equal split (default)
-        const amountPerPerson = parseFloat(amount) / membersToSplit.length;
+        // Handle regular splits (equal, custom, percentage)
+        let membersToSplit = splitWith;
 
-        for (const memberId of membersToSplit) {
-          await client.query(
-            `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
-             VALUES ($1, $2, $3, $4)`,
-            [newExpense.expense_id, memberId, amountPerPerson, memberId === userId]
+        if (!membersToSplit || membersToSplit.length === 0) {
+          // Default: equal split among all members
+          const membersResult = await client.query(
+            'SELECT user_id FROM group_members WHERE group_id = $1',
+            [groupId]
           );
+          membersToSplit = membersResult.rows.map(row => row.user_id);
+        }
+
+        const actualAmount = parseFloat(amount);
+        const actualTax = tax || 0;
+        const actualTip = tip || 0;
+        const totalWithTaxTip = actualAmount; // Amount already includes tax/tip
+
+        // Create splits based on type
+        if (splitType === 'custom' && customSplits) {
+          // Custom amounts per person
+          for (const split of customSplits) {
+            await client.query(
+              `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
+               VALUES ($1, $2, $3, $4)`,
+              [newExpense.expense_id, split.userId, split.amount, split.userId === userId]
+            );
+          }
+        } else if (splitType === 'percentage' && customSplits) {
+          // Percentage splits
+          for (const split of customSplits) {
+            const splitAmount = (totalWithTaxTip * split.percentage) / 100;
+            await client.query(
+              `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
+               VALUES ($1, $2, $3, $4)`,
+              [newExpense.expense_id, split.userId, splitAmount, split.userId === userId]
+            );
+          }
+        } else {
+          // Equal split (default) - includes tax and tip
+          const amountPerPerson = totalWithTaxTip / membersToSplit.length;
+
+          for (const memberId of membersToSplit) {
+            await client.query(
+              `INSERT INTO expense_splits (expense_id, user_id, amount_owed, paid)
+               VALUES ($1, $2, $3, $4)`,
+              [newExpense.expense_id, memberId, amountPerPerson, memberId === userId]
+            );
+          }
         }
       }
 
@@ -312,12 +430,30 @@ export const markSettlementPaid = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Can only mark your own payments' });
     }
 
+    // Get payer and creditor names
+    const usersResult = await pool.query(
+      `SELECT user_id, name FROM users WHERE user_id IN ($1, $2)`,
+      [fromUser, toUser]
+    );
+    const payerName = usersResult.rows.find((u: any) => u.user_id === fromUser)?.name || 'Someone';
+    const creditorName = usersResult.rows.find((u: any) => u.user_id === toUser)?.name || 'You';
+
     const result = await pool.query(
       `INSERT INTO settlements (group_id, from_user, to_user, amount, status)
        VALUES ($1, $2, $3, $4, 'pending')
        RETURNING *`,
       [groupId, fromUser, toUser, amount]
     );
+
+    // Notify creditor (to_user) that payment was marked as paid
+    await createNotification({
+      userId: toUser,
+      type: 'payment_marked',
+      title: 'Payment Pending Confirmation',
+      message: `${payerName} marked a payment of $${parseFloat(amount).toFixed(2)} as paid. Please confirm when you receive it.`,
+      relatedId: result.rows[0].settlement_id,
+      relatedType: 'settlement',
+    });
 
     res.status(201).json({
       message: 'Payment marked as pending confirmation',

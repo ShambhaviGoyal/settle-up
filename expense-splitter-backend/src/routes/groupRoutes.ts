@@ -4,6 +4,9 @@ import {
   createGroup,
   getGroupDetails,
   addMemberToGroup,
+  leaveGroup,
+  deleteGroup,
+  updateGroup,
 } from '../controllers/groupController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -15,6 +18,9 @@ router.use(authenticateToken);
 router.get('/', getUserGroups);
 router.post('/', createGroup);
 router.get('/:groupId', getGroupDetails);
+router.put('/:groupId', updateGroup);
+router.delete('/:groupId', deleteGroup);
 router.post('/:groupId/members', addMemberToGroup);
+router.delete('/:groupId/members', leaveGroup);
 
 export default router;

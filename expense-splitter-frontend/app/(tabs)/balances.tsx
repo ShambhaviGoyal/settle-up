@@ -1,9 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import PaymentButton from '../../components/PaymentButton';
 import { expenseAPI, groupAPI } from '../../services/api';
-
+import { Colors, Shadows, Spacing, BorderRadius, Typography } from '../../constants/theme';
 import { useRouter } from 'expo-router';
 const router = useRouter();
 
@@ -117,34 +118,45 @@ export default function BalancesScreen() {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: Colors.background }]}
       refreshControl={
         <RefreshControl refreshing={loading} onRefresh={loadBalances} />
       }
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>Balances</Text>
-        <TouchableOpacity onPress={() => router.push('/settlements')}>
-          <Text style={styles.historyLink}>Payments →</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={[styles.title, { color: Colors.textPrimary }]}>Balances</Text>
+          <Text style={[styles.subtitle, { color: Colors.textSecondary }]}>Track what you owe and are owed</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/settlements');
+          }}
+          style={styles.historyButton}
+        >
+          <Text style={[styles.historyLink, { color: Colors.primary }]}>Payments →</Text>
         </TouchableOpacity>
       </View>
 
       {groups.length > 0 && (
         <View style={styles.groupSelector}>
-          <Text style={styles.label}>Select Group:</Text>
+          <Text style={[styles.label, { color: Colors.textSecondary }]}>Select Group:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {groups.map((group) => (
               <TouchableOpacity
                 key={group.group_id}
                 style={[
                   styles.groupChip,
-                  selectedGroup?.group_id === group.group_id && styles.groupChipSelected
+                  { borderColor: Colors.border, backgroundColor: selectedGroup?.group_id === group.group_id ? Colors.primary : Colors.background },
+                  selectedGroup?.group_id === group.group_id && { borderColor: Colors.primary }
                 ]}
                 onPress={() => setSelectedGroup(group)}
               >
                 <Text style={[
                   styles.groupChipText,
-                  selectedGroup?.group_id === group.group_id && styles.groupChipTextSelected
+                  { color: selectedGroup?.group_id === group.group_id ? '#fff' : Colors.textSecondary }
                 ]}>
                   {group.name}
                 </Text>
@@ -156,34 +168,36 @@ export default function BalancesScreen() {
 
       {groups.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No groups yet. Create a group to get started!</Text>
+          <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>No groups yet. Create a group to get started!</Text>
         </View>
       ) : (
         <>
           <View style={styles.summaryContainer}>
-            <View style={[styles.summaryCard, styles.oweCard]}>
-              <Text style={styles.summaryLabel}>You owe</Text>
-              <Text style={styles.summaryAmount}>${totalYouOwe.toFixed(2)}</Text>
+            <View style={[styles.summaryCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+              <Text style={styles.summaryIcon}>💸</Text>
+              <Text style={[styles.summaryLabel, { color: Colors.textSecondary }]}>You owe</Text>
+              <Text style={[styles.summaryAmount, { color: '#ef4444' }]}>${totalYouOwe.toFixed(2)}</Text>
             </View>
-            <View style={[styles.summaryCard, styles.owedCard]}>
-              <Text style={styles.summaryLabel}>You are owed</Text>
-              <Text style={styles.summaryAmount}>${totalOwesYou.toFixed(2)}</Text>
+            <View style={[styles.summaryCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
+              <Text style={styles.summaryIcon}>💰</Text>
+              <Text style={[styles.summaryLabel, { color: Colors.textSecondary }]}>You are owed</Text>
+              <Text style={[styles.summaryAmount, { color: '#10b981' }]}>${totalOwesYou.toFixed(2)}</Text>
             </View>
           </View>
 
           {youOwe.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>You Owe</Text>
+              <Text style={[styles.sectionTitle, { color: Colors.textPrimary }]}>You Owe</Text>
               {youOwe.map(balance => {
                 const member = getMemberDetails(balance.user_id);
                 const amount = Math.abs(parseFloat(balance.balance));
                 
                 return (
-                  <View key={balance.user_id} style={styles.balanceCard}>
+                  <View key={balance.user_id} style={[styles.balanceCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
                     <View style={styles.balanceInfo}>
-                      <Text style={styles.personName}>{balance.name}</Text>
-                      <Text style={styles.groupName}>{selectedGroup?.name}</Text>
-                      <Text style={styles.amountOwe}>
+                      <Text style={[styles.personName, { color: Colors.textPrimary }]}>{balance.name}</Text>
+                      <Text style={[styles.groupName, { color: Colors.textSecondary }]}>{selectedGroup?.name}</Text>
+                      <Text style={[styles.amountOwe, { color: '#ef4444' }]}>
                         ${amount.toFixed(2)}
                       </Text>
                     </View>
@@ -207,8 +221,12 @@ export default function BalancesScreen() {
                       )}
                       
                       <TouchableOpacity 
-                        style={styles.markPaidButton}
-                        onPress={() => handleMarkPaid(balance.user_id, amount)}
+                        style={[styles.markPaidButton, { backgroundColor: Colors.primary }]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          handleMarkPaid(balance.user_id, amount);
+                        }}
+                        activeOpacity={0.8}
                       >
                         <Text style={styles.markPaidText}>✓ Mark as Paid</Text>
                       </TouchableOpacity>
@@ -221,18 +239,18 @@ export default function BalancesScreen() {
 
           {owesYou.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Owes You</Text>
+              <Text style={[styles.sectionTitle, { color: Colors.textPrimary }]}>Owes You</Text>
               {owesYou.map(balance => (
-                <View key={balance.user_id} style={styles.balanceCard}>
+                <View key={balance.user_id} style={[styles.balanceCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
                   <View style={styles.balanceInfo}>
-                    <Text style={styles.personName}>{balance.name}</Text>
-                    <Text style={styles.groupName}>{selectedGroup?.name}</Text>
-                    <Text style={styles.amountOwed}>
+                    <Text style={[styles.personName, { color: Colors.textPrimary }]}>{balance.name}</Text>
+                    <Text style={[styles.groupName, { color: Colors.textSecondary }]}>{selectedGroup?.name}</Text>
+                    <Text style={[styles.amountOwed, { color: '#10b981' }]}>
                       ${parseFloat(balance.balance).toFixed(2)}
                     </Text>
                   </View>
-                  <TouchableOpacity style={styles.remindButton}>
-                    <Text style={styles.remindButtonText}>Send Reminder</Text>
+                  <TouchableOpacity style={[styles.remindButton, { backgroundColor: Colors.gray50, borderColor: Colors.border }]}>
+                    <Text style={[styles.remindButtonText, { color: Colors.textPrimary }]}>Send Reminder</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -241,7 +259,7 @@ export default function BalancesScreen() {
 
           {balances.length > 0 && youOwe.length === 0 && owesYou.length === 0 && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>All settled up! 🎉</Text>
+              <Text style={[styles.emptyText, { color: Colors.textPrimary }]}>All settled up! 🎉</Text>
             </View>
           )}
 
@@ -255,109 +273,97 @@ export default function BalancesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing.lg,
     paddingTop: 60,
+    paddingBottom: Spacing.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    ...Typography.h1,
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    ...Typography.body,
+  },
+  historyButton: {
+    padding: Spacing.xs,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-    marginBottom: 8,
+    ...Typography.captionBold,
+    marginBottom: Spacing.xs,
   },
   groupSelector: {
-    marginBottom: 20,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
   },
   groupChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
-    marginRight: 8,
-  },
-  groupChipSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    marginRight: Spacing.sm,
   },
   groupChipText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  groupChipTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
+    ...Typography.caption,
   },
   summaryContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 30,
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   summaryCard: {
     flex: 1,
-    padding: 16,
-    borderRadius: 12,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     borderWidth: 2,
+    alignItems: 'center',
+    ...Shadows.sm,
   },
-  oweCard: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
-  },
-  owedCard: {
-    backgroundColor: '#f0fdf4',
-    borderColor: '#bbf7d0',
+  summaryIcon: {
+    fontSize: 32,
+    marginBottom: Spacing.xs,
   },
   summaryLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    ...Typography.caption,
+    marginBottom: Spacing.xs,
   },
   summaryAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...Typography.h2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#374151',
+    ...Typography.h3,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
   },
   balanceCard: {
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+    marginHorizontal: Spacing.lg,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    ...Shadows.sm,
   },
   balanceInfo: {
     marginBottom: 12,
   },
   personName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.h4,
+    marginBottom: Spacing.xs / 2,
   },
   groupName: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+    ...Typography.caption,
+    marginBottom: Spacing.sm,
   },
   amountOwe: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ef4444',
+    ...Typography.h3,
   },
   amountOwed: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#10b981',
+    ...Typography.h3,
   },
   paymentButtons: {
     gap: 8,
@@ -370,52 +376,40 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   remindButton: {
-    backgroundColor: '#f3f4f6',
-    padding: 12,
-    borderRadius: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
   },
   remindButtonText: {
-    color: '#374151',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.captionBold,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
   },
   emptyText: {
-    fontSize: 18,
-    color: '#6b7280',
+    ...Typography.h4,
+    textAlign: 'center',
   },
   paymentSection: {
   gap: 8,
   minWidth: 180,
   },
   markPaidButton: {
-    backgroundColor: '#10b981',
-    padding: 12,
-    borderRadius: 8,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
+    ...Shadows.sm,
   },
   markPaidText: {
+    ...Typography.captionBold,
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
   },
   historyLink: {
-    color: '#3b82f6',
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodyBold,
   },
 });

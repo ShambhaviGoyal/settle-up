@@ -1,6 +1,8 @@
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../../constants/theme';
 import { authAPI } from '../../services/api';
 
 export default function ProfileScreen() {
@@ -37,8 +39,10 @@ export default function ProfileScreen() {
     setLoading(true);
     try {
       await authAPI.updateProfile(name, phone, venmoHandle, zelleHandle, paypalHandle);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error: any) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', error.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
@@ -55,6 +59,7 @@ export default function ProfileScreen() {
           text: 'Logout',
           style: 'destructive',
           onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             await authAPI.logout();
             router.replace('/login');
           },
@@ -64,16 +69,26 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Profile</Text>
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.subtitle}>Manage your account settings</Text>
+      </View>
 
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {name.split(' ').map(n => n[0]).join('')}
+            {name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.changePhotoButton}>
+        <TouchableOpacity 
+          style={styles.changePhotoButton}
+          onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          activeOpacity={0.7}
+        >
           <Text style={styles.changePhotoText}>Change Photo</Text>
         </TouchableOpacity>
       </View>
@@ -81,28 +96,37 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Personal Information</Text>
         
-        <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </View>
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={[styles.input, styles.inputDisabled]}
-          value={email}
-          editable={false}
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={[styles.input, styles.inputDisabled]}
+            value={email}
+            editable={false}
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </View>
 
-        <Text style={styles.label}>Phone (Optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="+1 (555) 123-4567"
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Phone (Optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="+1 (555) 123-4567"
+            placeholderTextColor={Colors.textTertiary}
+          />
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -111,45 +135,62 @@ export default function ProfileScreen() {
           Add your payment handles so people can pay you easily
         </Text>
         
-        <Text style={styles.label}>Venmo Handle</Text>
-        <TextInput
-          style={styles.input}
-          value={venmoHandle}
-          onChangeText={setVenmoHandle}
-          placeholder="@username"
-          autoCapitalize="none"
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Venmo Handle</Text>
+          <TextInput
+            style={styles.input}
+            value={venmoHandle}
+            onChangeText={setVenmoHandle}
+            placeholder="@username"
+            placeholderTextColor={Colors.textTertiary}
+            autoCapitalize="none"
+          />
+        </View>
 
-        <Text style={styles.label}>Zelle Email/Phone</Text>
-        <TextInput
-          style={styles.input}
-          value={zelleHandle}
-          onChangeText={setZelleHandle}
-          placeholder="email@example.com or phone"
-          autoCapitalize="none"
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Zelle Email/Phone</Text>
+          <TextInput
+            style={styles.input}
+            value={zelleHandle}
+            onChangeText={setZelleHandle}
+            placeholder="email@example.com or phone"
+            placeholderTextColor={Colors.textTertiary}
+            autoCapitalize="none"
+          />
+        </View>
 
-        <Text style={styles.label}>PayPal Handle</Text>
-        <TextInput
-          style={styles.input}
-          value={paypalHandle}
-          onChangeText={setPaypalHandle}
-          placeholder="@username or username"
-          autoCapitalize="none"
-        />
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>PayPal Handle</Text>
+          <TextInput
+            style={styles.input}
+            value={paypalHandle}
+            onChangeText={setPaypalHandle}
+            placeholder="@username or username"
+            placeholderTextColor={Colors.textTertiary}
+            autoCapitalize="none"
+          />
+        </View>
       </View>
 
       <TouchableOpacity 
         style={[styles.saveButton, loading && styles.saveButtonDisabled]}
-        onPress={handleSave}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleSave();
+        }}
         disabled={loading}
+        activeOpacity={0.8}
       >
         <Text style={styles.saveButtonText}>
           {loading ? 'Saving...' : 'Save Changes'}
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+      <TouchableOpacity 
+        style={styles.logoutButton} 
+        onPress={handleLogout}
+        activeOpacity={0.8}
+      >
         <Text style={styles.logoutButtonText}>Log Out</Text>
       </TouchableOpacity>
 
@@ -161,102 +202,114 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: Colors.background,
+  },
+  header: {
+    paddingHorizontal: Spacing.lg,
     paddingTop: 60,
+    paddingBottom: Spacing.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
+    ...Typography.h1,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+  subtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
   avatarContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#3b82f6',
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
+    ...Shadows.md,
   },
   avatarText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#fff',
+    ...Typography.h1,
+    color: Colors.textInverse,
   },
   changePhotoButton: {
-    padding: 8,
+    padding: Spacing.sm,
   },
   changePhotoText: {
-    color: '#3b82f6',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.bodyBold,
+    color: Colors.primary,
   },
   section: {
-    marginBottom: 30,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#374151',
+    ...Typography.h3,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   sectionDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
+  },
+  inputContainer: {
+    marginBottom: Spacing.md,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#6b7280',
+    ...Typography.captionBold,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
   },
   input: {
+    ...Typography.body,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+    color: Colors.textPrimary,
   },
   inputDisabled: {
-    backgroundColor: '#f3f4f6',
-    color: '#6b7280',
+    backgroundColor: Colors.gray100,
+    opacity: 0.6,
   },
   saveButton: {
-    backgroundColor: '#3b82f6',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    ...Shadows.md,
   },
   saveButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: Colors.gray400,
+    opacity: 0.6,
   },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.bodyBold,
+    color: Colors.textInverse,
   },
   logoutButton: {
-    backgroundColor: '#f3f4f6',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.gray100,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
+    marginHorizontal: Spacing.lg,
   },
   logoutButtonText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.bodyBold,
+    color: Colors.error,
   },
   spacer: {
-    height: 40,
+    height: Spacing.xxl,
   },
 });

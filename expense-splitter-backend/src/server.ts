@@ -3,13 +3,15 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import groupRoutes from './routes/groupRoutes';
-import expenseRoutes from './routes/expenseRoutes'; // Add this
+import expenseRoutes from './routes/expenseRoutes';
 import ocrRoutes from './routes/ocrRoutes';
 import insightsRoutes from './routes/insightsRoutes';
 import recurringRoutes from './routes/recurringRoutes';
 import { processRecurring } from './controllers/recurringController';
 import cron from 'node-cron';
 import budgetRoutes from './routes/budgetRoutes';
+import invitationRoutes from './routes/invitationRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 
 dotenv.config();
 
@@ -24,11 +26,13 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupRoutes);
-app.use('/api/expenses', expenseRoutes); // Add this
+app.use('/api/expenses', expenseRoutes);
 app.use('/api/ocr', ocrRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/recurring', recurringRoutes);
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Test route
 app.get('/', (req: Request, res: Response) => {
@@ -46,15 +50,7 @@ app.listen(port, '0.0.0.0', () => {
   console.log(`📱 Mobile access: http://192.168.29.52:${port}`);
 });
 
-// Run recurring processor daily at midnight
-setInterval(() => {
-  const now = new Date();
-  if (now.getHours() === 0 && now.getMinutes() === 0) {
-    processRecurring();
-  }
-}, 60000); // Check every minute
-
-// Run daily at midnight
+// Run recurring expense processor daily at midnight
 cron.schedule('0 0 * * *', () => {
   console.log('Running recurring expense processor...');
   processRecurring();

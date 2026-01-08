@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { authAPI } from '../services/api';
+import { Colors, Shadows, Spacing, BorderRadius, Typography } from '../constants/theme';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -11,111 +13,169 @@ export default function LoginScreen() {
 
 const handleLogin = async () => {
   if (!email || !password) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     Alert.alert('Error', 'Please fill in all fields');
     return;
   }
 
   setLoading(true);
   try {
-    console.log('Attempting login with:', email);
-    console.log('API URL:', 'http://YOUR_IP:3000/api'); // Replace with your actual IP
-    
     const result = await authAPI.login(email, password);
-    console.log('Login successful:', result);
-    
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.replace('/(tabs)');
   } catch (error: any) {
-    console.error('Login error full:', error);
-    console.error('Error response:', error.response?.data);
-    console.error('Error message:', error.message);
-    
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     const errorMessage = error.response?.data?.error || error.message || 'Something went wrong';
     Alert.alert('Login Failed', errorMessage);
   } finally {
     setLoading(false);
   }
-};  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
-      <Text style={styles.subtitle}>Login to your account</Text>
+};
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+  return (
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.emoji}>👋</Text>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email"
+              placeholderTextColor={Colors.textTertiary}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
 
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Login'}
-        </Text>
-      </TouchableOpacity>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your password"
+              placeholderTextColor={Colors.textTertiary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
 
-      <TouchableOpacity onPress={() => router.push('../register')}>
-        <Text style={styles.linkText}>
-          Don&apos;t have an account? Sign up
-        </Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Logging in...' : 'Sign In'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+          <TouchableOpacity 
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('../register');
+            }}
+          >
+            <Text style={styles.linkText}>Sign up</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    flex: 1,
+    padding: Spacing.lg,
     justifyContent: 'center',
   },
+  header: {
+    alignItems: 'center',
+    marginBottom: Spacing.xxl,
+  },
+  emoji: {
+    fontSize: 64,
+    marginBottom: Spacing.md,
+  },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    ...Typography.h1,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 40,
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  form: {
+    marginBottom: Spacing.xl,
+  },
+  inputContainer: {
+    marginBottom: Spacing.md,
+  },
+  label: {
+    ...Typography.captionBold,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
   },
   input: {
+    ...Typography.body,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    backgroundColor: Colors.background,
+    color: Colors.textPrimary,
   },
   button: {
-    backgroundColor: '#3b82f6',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: Spacing.md,
+    ...Shadows.md,
+  },
+  buttonDisabled: {
+    backgroundColor: Colors.gray400,
+    opacity: 0.6,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.bodyBold,
+    color: Colors.textInverse,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
   linkText: {
-    color: '#3b82f6',
-    textAlign: 'center',
-    marginTop: 16,
-    fontSize: 14,
+    ...Typography.bodyBold,
+    color: Colors.primary,
   },
 });

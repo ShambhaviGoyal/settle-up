@@ -41,9 +41,33 @@ CREATE TABLE expenses (
   description VARCHAR(255) NOT NULL,
   category VARCHAR(50) DEFAULT 'other',
   receipt_image_url TEXT,
+  receipt_image_base64 TEXT,
+  subtotal DECIMAL(10, 2),
+  tax DECIMAL(10, 2) DEFAULT 0,
+  tip DECIMAL(10, 2) DEFAULT 0,
+  is_itemized BOOLEAN DEFAULT FALSE,
   expense_date DATE NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Receipt items table (for itemized expenses)
+CREATE TABLE receipt_items (
+  item_id SERIAL PRIMARY KEY,
+  expense_id INTEGER REFERENCES expenses(expense_id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  price DECIMAL(10, 2) NOT NULL,
+  item_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Itemized splits table (who gets which items)
+CREATE TABLE itemized_splits (
+  itemized_split_id SERIAL PRIMARY KEY,
+  item_id INTEGER REFERENCES receipt_items(item_id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(item_id, user_id)
 );
 
 -- Expense splits table (who owes what for each expense)
@@ -95,3 +119,6 @@ CREATE INDEX idx_expense_splits_user ON expense_splits(user_id);
 CREATE INDEX idx_expense_splits_expense ON expense_splits(expense_id);
 CREATE INDEX idx_settlements_from ON settlements(from_user);
 CREATE INDEX idx_settlements_to ON settlements(to_user);
+CREATE INDEX idx_receipt_items_expense ON receipt_items(expense_id);
+CREATE INDEX idx_itemized_splits_item ON itemized_splits(item_id);
+CREATE INDEX idx_itemized_splits_user ON itemized_splits(user_id);

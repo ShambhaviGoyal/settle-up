@@ -60,6 +60,16 @@ export const authAPI = {
     });
     return response.data;
   },
+
+  requestPasswordReset: async (email: string) => {
+    const response = await api.post('/auth/password-reset/request', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post('/auth/password-reset/reset', { token, newPassword });
+    return response.data;
+  },
 };
 
 // Group APIs
@@ -81,6 +91,74 @@ export const groupAPI = {
 
   addMember: async (groupId: number, email: string) => {
     const response = await api.post(`/groups/${groupId}/members`, { email });
+    return response.data;
+  },
+
+  updateGroup: async (groupId: number, name: string, description: string) => {
+    const response = await api.put(`/groups/${groupId}`, { name, description });
+    return response.data;
+  },
+
+  leaveGroup: async (groupId: number) => {
+    const response = await api.delete(`/groups/${groupId}/members`);
+    return response.data;
+  },
+
+  deleteGroup: async (groupId: number) => {
+    const response = await api.delete(`/groups/${groupId}`);
+    return response.data;
+  },
+};
+
+// Invitation APIs
+export const invitationAPI = {
+  getPending: async () => {
+    const response = await api.get('/invitations');
+    return response.data.invitations;
+  },
+
+  send: async (groupId: number, email: string) => {
+    const response = await api.post(`/invitations/group/${groupId}`, { email });
+    return response.data;
+  },
+
+  accept: async (invitationId: number) => {
+    const response = await api.post(`/invitations/${invitationId}/accept`);
+    return response.data;
+  },
+
+  decline: async (invitationId: number) => {
+    const response = await api.post(`/invitations/${invitationId}/decline`);
+    return response.data;
+  },
+};
+
+// Notification APIs
+export const notificationAPI = {
+  getAll: async (unreadOnly?: boolean) => {
+    const response = await api.get('/notifications', {
+      params: { unreadOnly: unreadOnly ? 'true' : 'false' },
+    });
+    return response.data.notifications;
+  },
+
+  getUnreadCount: async () => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data.count;
+  },
+
+  markRead: async (notificationId: number) => {
+    const response = await api.patch(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  markAllRead: async () => {
+    const response = await api.patch('/notifications/read-all');
+    return response.data;
+  },
+
+  delete: async (notificationId: number) => {
+    const response = await api.delete(`/notifications/${notificationId}`);
     return response.data;
   },
 };

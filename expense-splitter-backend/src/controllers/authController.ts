@@ -161,3 +161,86 @@ export const updateProfile = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// Request password reset
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  try {
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user
+    const result = await pool.query(
+      'SELECT user_id, email FROM users WHERE email = $1',
+      [email]
+    );
+
+    // Always return success to prevent email enumeration
+    if (result.rows.length === 0) {
+      return res.json({ message: 'If the email exists, a password reset link has been sent' });
+    }
+
+    // Generate reset token (simple implementation - in production, use crypto.randomBytes)
+    const resetToken = jwt.sign(
+      { userId: result.rows[0].user_id, type: 'password-reset' },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '1h' }
+    );
+
+    // In production, send email with reset link
+    // For now, we'll just return the token (you should implement email sending)
+    console.log(`Password reset token for ${email}: ${resetToken}`);
+
+    res.json({
+      message: 'If the email exists, a password reset link has been sent',
+      // In development, return token. Remove in production!
+      resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
+    });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// Reset password with token
+export const resetPassword = async (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Verify token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+      if (decoded.type !== 'password-reset') {
+        return res.status(400).json({ error: 'Invalid token' });
+      }
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password
+    await pool.query(
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2',
+      [passwordHash, decoded.userId]
+    );
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

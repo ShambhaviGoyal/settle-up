@@ -1,5 +1,7 @@
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants/theme';
 
 type GroupCardProps = {
   groupId: number;
@@ -11,57 +13,96 @@ type GroupCardProps = {
 export default function GroupCard({ groupId, groupName, memberCount, yourBalance }: GroupCardProps) {
   const router = useRouter();
   
-  const balanceColor = yourBalance > 0 ? '#10b981' : yourBalance < 0 ? '#ef4444' : '#6b7280';
+  const balanceColor = yourBalance > 0 ? Colors.success : yourBalance < 0 ? Colors.error : Colors.gray500;
   const balanceText = yourBalance > 0 
-    ? `You are owed $${Math.abs(yourBalance)}`
+    ? `You are owed $${Math.abs(yourBalance).toFixed(2)}`
     : yourBalance < 0 
-    ? `You owe $${Math.abs(yourBalance)}`
+    ? `You owe $${Math.abs(yourBalance).toFixed(2)}`
     : 'All settled up';
+
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: '/group-details',
+      params: { groupId, groupName }
+    });
+  };
 
   return (
     <TouchableOpacity 
       style={styles.card}
-      onPress={() => router.push({
-        pathname: '/group-details',
-        params: { groupId, groupName }
-      })}
+      onPress={handlePress}
+      activeOpacity={0.7}
     >
-      <View style={styles.cardHeader}>
-        <Text style={styles.groupName}>{groupName}</Text>
-        <Text style={styles.memberCount}>{memberCount} members</Text>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <View style={styles.iconContainer}>
+            <Text style={styles.iconText}>{groupName.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.cardInfo}>
+            <Text style={styles.groupName}>{groupName}</Text>
+            <Text style={styles.memberCount}>{memberCount} {memberCount === 1 ? 'member' : 'members'}</Text>
+          </View>
+        </View>
+        <View style={[styles.balanceBadge, { backgroundColor: balanceColor + '15' }]}>
+          <Text style={[styles.balance, { color: balanceColor }]}>
+            {balanceText}
+          </Text>
+        </View>
       </View>
-      <Text style={[styles.balance, { color: balanceColor }]}>
-        {balanceText}
-      </Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
+    ...Shadows.sm,
+  },
+  cardContent: {
+    padding: Spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: Spacing.md,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  iconText: {
+    ...Typography.h4,
+    color: Colors.textInverse,
+  },
+  cardInfo: {
+    flex: 1,
   },
   groupName: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs / 2,
   },
   memberCount: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+  balanceBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
   },
   balance: {
-    fontSize: 16,
-    fontWeight: '500',
+    ...Typography.captionBold,
   },
 });

@@ -1,50 +1,54 @@
-# Welcome to your Expo app 👋
+# Expense Splitter Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native mobile application built with Expo for splitting expenses with friends and groups.
 
-## Get started
+## Quick Start
 
-1. Install dependencies
-
+1. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
+2. **Configure API URL**
 
+   Update `services/api.ts` with your backend server IP:
+   ```typescript
+   const API_URL = 'http://YOUR_LOCAL_IP:3000/api';
+   ```
+
+3. **Start the app**
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. **Run on device/simulator**
+   - Press `i` for iOS Simulator
+   - Press `a` for Android Emulator
+   - Scan QR code with Expo Go app
+   - Press `w` for web
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Available Scripts
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- `npm start` - Start Expo development server
+- `npm run android` - Start on Android emulator
+- `npm run ios` - Start on iOS simulator
+- `npm run web` - Start web version
+- `npm run lint` - Run ESLint
 
-## Get a fresh project
+## Project Structure
 
-When you're ready, run:
+- `app/` - Screen components (file-based routing)
+- `components/` - Reusable UI components
+- `services/` - API client and service layer
+- `constants/` - App constants and theme
+- `hooks/` - Custom React hooks
 
-```bash
-npm run reset-project
-```
+## Tech Stack
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- React Native (Expo SDK ~54)
+- TypeScript
+- Expo Router
+- Axios
+- AsyncStorage
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+For complete documentation, see the [main README](../README.md) in the project root.

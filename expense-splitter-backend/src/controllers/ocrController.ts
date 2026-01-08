@@ -25,6 +25,9 @@ export const processReceipt = async (req: AuthRequest, res: Response) => {
               text: `Analyze this receipt image and extract the following information in JSON format:
               {
                 "total": <total amount as number>,
+                "subtotal": <subtotal before tax/tip as number, if available>,
+                "tax": <tax amount as number, if available, otherwise 0>,
+                "tip": <tip amount as number, if available, otherwise 0>,
                 "items": [{"name": "item name", "price": <price as number>}],
                 "vendor": "store/restaurant name",
                 "date": "YYYY-MM-DD format",

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { groupAPI } from '../services/api';
+import { groupAPI, invitationAPI } from '../services/api';
 
 type AddMemberModalProps = {
   visible: boolean;
@@ -28,13 +28,14 @@ export default function AddMemberModal({ visible, groupId, onClose, onMemberAdde
 
     setLoading(true);
     try {
-      await groupAPI.addMember(groupId, email);
+      // Use invitation system instead of direct add
+      await invitationAPI.send(groupId, email);
       setEmail('');
-      Alert.alert('Success', 'Member added successfully');
+      Alert.alert('Success', 'Invitation sent successfully!');
       onMemberAdded();
       onClose();
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Failed to add member';
+      const errorMsg = error.response?.data?.error || 'Failed to send invitation';
       Alert.alert('Error', errorMsg);
     } finally {
       setLoading(false);

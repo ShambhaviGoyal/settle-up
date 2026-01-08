@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors, Shadows, Spacing, BorderRadius, Typography } from '../constants/theme';
 
 type ExpenseCardProps = {
   expenseId?: number;
@@ -14,13 +15,13 @@ type ExpenseCardProps = {
 };
 
 const CATEGORY_COLORS: { [key: string]: string } = {
-  food: '#f59e0b',
-  rent: '#8b5cf6',
-  utilities: '#3b82f6',
-  transport: '#10b981',
-  entertainment: '#ec4899',
-  shopping: '#f43f5e',
-  other: '#6b7280',
+  food: Colors.category.food,
+  rent: Colors.category.rent,
+  utilities: Colors.category.utilities,
+  transport: Colors.category.transport,
+  entertainment: Colors.category.entertainment,
+  shopping: Colors.category.shopping,
+  other: Colors.category.other,
 };
 
 const CATEGORY_LABELS: { [key: string]: string } = {
@@ -45,39 +46,61 @@ export default function ExpenseCard({
   onEdit,
   onDelete,
 }: ExpenseCardProps) {
+  const categoryColor = CATEGORY_COLORS[category] || Colors.category.other;
+  const yourShare = amount / splitBetween;
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.description}>{description}</Text>
-          <View style={[styles.categoryBadge, { backgroundColor: CATEGORY_COLORS[category] + '20' }]}>
-            <Text style={[styles.categoryText, { color: CATEGORY_COLORS[category] }]}>
+          <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '15' }]}>
+            <Text style={[styles.categoryText, { color: categoryColor }]}>
               {CATEGORY_LABELS[category]}
             </Text>
           </View>
         </View>
-        <Text style={styles.amount}>${amount.toFixed(2)}</Text>
+        <View style={styles.amountContainer}>
+          <Text style={styles.amount}>${amount.toFixed(2)}</Text>
+        </View>
       </View>
       <View style={styles.details}>
-        <Text style={styles.detailText}>Paid by {paidBy}</Text>
-        <Text style={styles.detailText}>•</Text>
-        <Text style={styles.detailText}>Split {splitBetween} ways</Text>
-        <Text style={styles.detailText}>•</Text>
-        <Text style={styles.detailText}>{date}</Text>
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Paid by</Text>
+          <Text style={styles.detailText}>{paidBy}</Text>
+        </View>
+        <View style={styles.detailDivider} />
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Split</Text>
+          <Text style={styles.detailText}>{splitBetween} ways</Text>
+        </View>
+        <View style={styles.detailDivider} />
+        <View style={styles.detailItem}>
+          <Text style={styles.detailLabel}>Date</Text>
+          <Text style={styles.detailText}>{date}</Text>
+        </View>
       </View>
       <View style={styles.footer}>
         <View style={styles.yourShare}>
-          <Text style={styles.yourShareLabel}>Your share:</Text>
+          <Text style={styles.yourShareLabel}>Your share</Text>
           <Text style={styles.yourShareAmount}>
-            ${(amount / splitBetween).toFixed(2)}
+            ${yourShare.toFixed(2)}
           </Text>
         </View>
         {isOwner && (
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.editButton]} 
+              onPress={onEdit}
+              activeOpacity={0.7}
+            >
               <Text style={styles.editText}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.deleteButton]} 
+              onPress={onDelete}
+              activeOpacity={0.7}
+            >
               <Text style={styles.deleteText}>Delete</Text>
             </TouchableOpacity>
           </View>
@@ -89,91 +112,112 @@ export default function ExpenseCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: Colors.border,
+    ...Shadows.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: Spacing.md,
   },
   headerLeft: {
     flex: 1,
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   description: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 6,
+    ...Typography.bodyBold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: BorderRadius.full,
   },
   categoryText: {
-    fontSize: 11,
+    ...Typography.small,
     fontWeight: '600',
   },
+  amountContainer: {
+    alignItems: 'flex-end',
+  },
   amount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#3b82f6',
+    ...Typography.h3,
+    color: Colors.primary,
   },
   details: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+  },
+  detailLabel: {
+    ...Typography.small,
+    color: Colors.textTertiary,
   },
   detailText: {
-    fontSize: 13,
-    color: '#6b7280',
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+  detailDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing.sm,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
   },
   yourShare: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.sm,
   },
   yourShareLabel: {
-    fontSize: 14,
-    color: '#6b7280',
+    ...Typography.caption,
+    color: Colors.textSecondary,
   },
   yourShareAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#10b981',
+    ...Typography.bodyBold,
+    color: Colors.success,
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.sm,
   },
   actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+  },
+  editButton: {
+    backgroundColor: Colors.info + '15',
+  },
+  deleteButton: {
+    backgroundColor: Colors.error + '15',
   },
   editText: {
-    color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.captionBold,
+    color: Colors.info,
   },
   deleteText: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.captionBold,
+    color: Colors.error,
   },
 });

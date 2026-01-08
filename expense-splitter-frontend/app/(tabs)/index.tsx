@@ -1,17 +1,20 @@
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CreateGroupModal from '../../components/CreateGroupModal';
 import ExpenseCard from '../../components/ExpenseCard';
 import GroupCard from '../../components/GroupCard';
-import { groupAPI } from '../../services/api';
-
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../../constants/theme';
+import { groupAPI, invitationAPI, notificationAPI } from '../../services/api';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [invitationCount, setInvitationCount] = useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const loadGroups = async () => {
     setLoading(true);
@@ -25,8 +28,25 @@ export default function HomeScreen() {
     }
   };
 
+  const loadCounts = async () => {
+    try {
+      const [invitations, unreadCount] = await Promise.all([
+        invitationAPI.getPending(),
+        notificationAPI.getUnreadCount(),
+      ]);
+      setInvitationCount(invitations.length);
+      setNotificationCount(unreadCount);
+    } catch (error) {
+      console.error('Error loading counts:', error);
+    }
+  };
+
   useEffect(() => {
     loadGroups();
+    loadCounts();
+    // Refresh counts every 30 seconds
+    const interval = setInterval(loadCounts, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const recentExpenses = [
@@ -35,75 +55,129 @@ export default function HomeScreen() {
     { id: 3, description: 'Uber to airport', amount: 45.50, paidBy: 'Bob', date: 'Dec 24', splitBetween: 2 },
   ];
 
+  const handleCreateGroup = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowCreateModal(true);
+  };
+
+  const handleNavigate = (path: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(path);
+  };
+
   return (
     <>
       <ScrollView 
         style={styles.container}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={loadGroups} />
+          <RefreshControl refreshing={loading} onRefresh={() => { loadGroups(); loadCounts(); }} />
         }
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Expense Splitter</Text>
-        <Text style={styles.subtitle}>Your Groups</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Expense Splitter</Text>
+          <Text style={styles.subtitle}>Manage your shared expenses</Text>
+          
+          {/* Notification and Invitation Badges */}
+          <View style={styles.badgeContainer}>
+            {(invitationCount > 0 || notificationCount > 0) && (
+              <>
+                {invitationCount > 0 && (
+                  <TouchableOpacity
+                    style={[styles.badge, { backgroundColor: Colors.primary }]}
+                    onPress={() => router.push('/invitations')}
+                  >
+                    <Text style={styles.badgeText}>📬 {invitationCount}</Text>
+                  </TouchableOpacity>
+                )}
+                {notificationCount > 0 && (
+                  <TouchableOpacity
+                    style={[styles.badge, { backgroundColor: '#ec4899' }]}
+                    onPress={() => router.push('/notifications')}
+                  >
+                    <Text style={styles.badgeText}>🔔 {notificationCount}</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        </View>
         
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => setShowCreateModal(true)}
-        >
-          <Text style={styles.addButtonText}>+ Create New Group</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.insightsButton}
-          onPress={() => router.push('/insights')}
-        >
-          <Text style={styles.insightsButtonText}>💡 AI Insights</Text>
-        </TouchableOpacity>
+        <View style={styles.quickActions}>
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={handleCreateGroup}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>+ Create New Group</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.actionGrid}>
+            <TouchableOpacity 
+              style={styles.actionCard}
+              onPress={() => handleNavigate('/insights')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIcon}>💡</Text>
+              <Text style={styles.actionText}>AI Insights</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.searchButton}
-          onPress={() => router.push('/search-expenses')}
-        >
-          <Text style={styles.searchButtonText}>🔍 Search Expenses</Text>
-        </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionCard}
+              onPress={() => handleNavigate('/search-expenses')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIcon}>🔍</Text>
+              <Text style={styles.actionText}>Search</Text>
+            </TouchableOpacity>
 
-        {/* ✅ ADDED BUDGET BUTTON */}
-        <TouchableOpacity 
-          style={styles.budgetButton}
-          onPress={() => router.push('/budgets')}
-        >
-          <Text style={styles.budgetButtonText}>💰 Budgets</Text>
-        </TouchableOpacity>
-
-        <View style={styles.groupList}>
-          {groups.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No groups yet. Create one to get started!</Text>
-            </View>
-          ) : (groups.map((group: any) => (
-            <GroupCard
-              key={group.group_id}
-              groupId={group.group_id}
-              groupName={group.name}
-              memberCount={group.member_count}
-              yourBalance={0}
-            />
-          ))
-          )}
+            <TouchableOpacity 
+              style={styles.actionCard}
+              onPress={() => handleNavigate('/budgets')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIcon}>💰</Text>
+              <Text style={styles.actionText}>Budgets</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <Text style={styles.subtitle}>Recent Expenses</Text>
-        <View style={styles.expenseList}>
-          {recentExpenses.map(expense => (
-            <ExpenseCard
-              key={expense.id}
-              description={expense.description}
-              amount={expense.amount}
-              paidBy={expense.paidBy}
-              date={expense.date}
-              splitBetween={expense.splitBetween}
-            />
-          ))}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Groups</Text>
+          <View style={styles.groupList}>
+            {groups.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyIcon}>📁</Text>
+                <Text style={styles.emptyTitle}>No groups yet</Text>
+                <Text style={styles.emptyText}>Create your first group to start splitting expenses</Text>
+              </View>
+            ) : (groups.map((group: any) => (
+              <GroupCard
+                key={group.group_id}
+                groupId={group.group_id}
+                groupName={group.name}
+                memberCount={group.member_count}
+                yourBalance={0}
+              />
+            ))
+            )}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Expenses</Text>
+          <View style={styles.expenseList}>
+            {recentExpenses.map(expense => (
+              <ExpenseCard
+                key={expense.id}
+                description={expense.description}
+                amount={expense.amount}
+                paidBy={expense.paidBy}
+                date={expense.date}
+                splitBetween={expense.splitBetween}
+              />
+            ))}
+          </View>
         </View>
       </ScrollView>
 
@@ -119,91 +193,112 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: Colors.background,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  badge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  header: {
+    paddingHorizontal: Spacing.lg,
     paddingTop: 60,
+    paddingBottom: Spacing.md,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    ...Typography.h1,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 16,
-    marginTop: 24,
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    padding: 16,
-    borderRadius: 12,
+  quickActions: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  primaryButton: {
+    backgroundColor: Colors.primary,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: Spacing.md,
+    ...Shadows.md,
   },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  primaryButtonText: {
+    ...Typography.bodyBold,
+    color: Colors.textInverse,
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  actionCard: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.background,
+    ...Shadows.sm,
+  },
+  actionIcon: {
+    fontSize: 24,
+    marginBottom: Spacing.xs,
+  },
+  actionText: {
+    ...Typography.captionBold,
+    color: Colors.textPrimary,
+  },
+  section: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    ...Typography.h3,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.md,
   },
   groupList: {
-    marginBottom: 20,
+    gap: Spacing.sm,
   },
   expenseList: {
-    marginBottom: 40,
+    gap: Spacing.sm,
+    paddingBottom: Spacing.xxl,
   },
   emptyState: {
-    padding: 40,
+    padding: Spacing.xxl,
     alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    backgroundColor: Colors.background,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: Spacing.md,
+  },
+  emptyTitle: {
+    ...Typography.h4,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#6b7280',
+    ...Typography.body,
+    color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  insightsButton: {
-    backgroundColor: '#eff6ff',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  insightsButtonText: {
-    color: '#1e40af',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  searchButton: {
-    backgroundColor: '#f3f4f6',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-  },
-  searchButtonText: {
-    color: '#374151',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-
-  /* ✅ ADDED STYLES */
-  budgetButton: {
-    backgroundColor: '#fef3c7',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  budgetButtonText: {
-    color: '#92400e',
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

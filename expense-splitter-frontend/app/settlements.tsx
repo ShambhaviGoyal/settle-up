@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors, BorderRadius, Shadows, Spacing, Typography } from '../constants/theme';
 
 const API_URL = 'http://192.168.29.52:3000/api';
 
@@ -66,41 +67,41 @@ export default function SettlementsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: Colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: Colors.border }]}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: Colors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Pending Payments</Text>
+        <Text style={[styles.title, { color: Colors.textPrimary }]}>Pending Payments</Text>
         <View style={{ width: 60 }} />
       </View>
 
       <ScrollView style={styles.content}>
         {loading ? (
-          <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
         ) : settlements.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No pending payments</Text>
+            <Text style={[styles.emptyText, { color: Colors.textSecondary }]}>No pending payments</Text>
           </View>
         ) : (
           settlements.map(settlement => {
             const isRecipient = settlement.to_user === currentUserId;
             
             return (
-              <View key={settlement.settlement_id} style={styles.settlementCard}>
+              <View key={settlement.settlement_id} style={[styles.settlementCard, { backgroundColor: Colors.background, borderColor: Colors.border }]}>
                 <View style={styles.settlementInfo}>
-                  <Text style={styles.settlementAmount}>${parseFloat(settlement.amount).toFixed(2)}</Text>
-                  <Text style={styles.settlementDescription}>
+                  <Text style={[styles.settlementAmount, { color: '#10b981' }]}>${parseFloat(settlement.amount).toFixed(2)}</Text>
+                  <Text style={[styles.settlementDescription, { color: Colors.textPrimary }]}>
                     {isRecipient 
                       ? `${settlement.from_name} paid you`
                       : `You paid ${settlement.to_name}`}
                   </Text>
-                  <Text style={styles.settlementGroup}>{settlement.group_name}</Text>
+                  <Text style={[styles.settlementGroup, { color: Colors.textSecondary }]}>{settlement.group_name}</Text>
                 </View>
                 
                 {isRecipient && (
                   <TouchableOpacity 
-                    style={styles.confirmButton}
+                    style={[styles.confirmButton, { backgroundColor: '#10b981' }]}
                     onPress={() => handleConfirm(settlement.settlement_id)}
                   >
                     <Text style={styles.confirmButtonText}>Confirm</Text>
@@ -108,8 +109,8 @@ export default function SettlementsScreen() {
                 )}
                 
                 {!isRecipient && (
-                  <View style={styles.pendingBadge}>
-                    <Text style={styles.pendingText}>Pending</Text>
+                  <View style={[styles.pendingBadge, { backgroundColor: '#fef3c7' }]}>
+                    <Text style={[styles.pendingText, { color: '#92400e' }]}>Pending</Text>
                   </View>
                 )}
               </View>
@@ -122,7 +123,7 @@ export default function SettlementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -130,40 +131,33 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
-  backText: { color: '#3b82f6', fontSize: 16 },
+  backText: { fontSize: 16 },
   title: { fontSize: 18, fontWeight: '600' },
   content: { flex: 1, padding: 20 },
   settlementCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   settlementInfo: { flex: 1 },
   settlementAmount: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#10b981',
     marginBottom: 4,
   },
   settlementDescription: {
     fontSize: 15,
-    color: '#374151',
     marginBottom: 2,
   },
   settlementGroup: {
     fontSize: 13,
-    color: '#6b7280',
   },
   confirmButton: {
-    backgroundColor: '#10b981',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -174,13 +168,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pendingBadge: {
-    backgroundColor: '#fef3c7',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   pendingText: {
-    color: '#92400e',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -190,6 +182,5 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
   },
 });
